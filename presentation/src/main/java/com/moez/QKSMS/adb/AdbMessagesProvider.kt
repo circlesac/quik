@@ -59,8 +59,12 @@ import javax.inject.Inject
  *   adb shell content delete --uri content://dev.octoshrimpy.quik.adb/messages/137
  *   adb shell content delete --uri content://dev.octoshrimpy.quik.adb/messages --where "id IN (1,2,3)"
  *
- *   # mark read/unread (update the message's thread)
+ *   # mark read/unread, or archive/unarchive the message's thread (either or both binds)
  *   adb shell content update --uri content://dev.octoshrimpy.quik.adb/messages/137 --bind read:i:1
+ *   adb shell content update --uri content://dev.octoshrimpy.quik.adb/messages/137 --bind archived:i:1
+ *
+ * The /messages query hides messages in archived conversations by default (an inbox/agenda view);
+ * pass ?includeArchived=1 to see them all.
  *
  * Security: the provider is exported (the `shell` uid lives in a different process, so adb can only
  * reach it when exported), which means any installed app could otherwise call it with no SMS
@@ -135,10 +139,19 @@ class AdbMessagesProvider : ContentProvider() {
                     ?.let { q = q.equalTo("threadId", it) }
 
                 val results = q.sort("date", Sort.DESCENDING).findAll()
-                val limit = uri.getQueryParameter("limit")?.toIntOrNull() ?: results.size
+
+                // Hide messages in archived conversations by default (an agenda/inbox view);
+                // pass ?includeArchived=1 to see them all.
+                val rows = if (uri.getQueryParameter("includeArchived") == "1") results.toList()
+                else {
+                    val archivedThreads = realm.where(Conversation::class.java)
+                        .equalTo("archived", true).findAll().map { it.id }.toSet()
+                    results.filter { it.threadId !in archivedThreads }
+                }
+                val limit = uri.getQueryParameter("limit")?.toIntOrNull() ?: rows.size
 
                 MatrixCursor(MESSAGE_COLUMNS).apply {
-                    results.take(limit).forEach { m ->
+                    rows.take(limit).forEach { m ->
                         addRow(arrayOf(
                             m.id, m.id, m.threadId, m.contentId, m.address, m.body,
                             m.date, m.dateSent, if (m.read) 1 else 0, if (m.seen) 1 else 0,
@@ -219,7 +232,9 @@ class AdbMessagesProvider : ContentProvider() {
         enforceCaller()
 
         val read = values?.getAsInteger("read")
-            ?: throw IllegalArgumentException("update only supports the 'read' flag")
+        val archived = values?.getAsInteger("archived")
+        if (read == null && archived == null)
+            throw IllegalArgumentException("update supports the 'read' and/or 'archived' flag")
 
         val ids = when (matcher.match(uri)) {
             MESSAGE_ID -> listOf(ContentUris.parseId(uri))
@@ -228,10 +243,16 @@ class AdbMessagesProvider : ContentProvider() {
         }
         if (ids.isEmpty()) return 0
 
-        // read/unread operate per-thread in the repository, so resolve threads from the message ids.
+        // read/unread and archive/unarchive both operate per-thread, so resolve threads from the ids.
         val threadIds = ids.mapNotNull { messageRepo.getUnmanagedMessage(it)?.threadId }.distinct()
 
-        if (read != 0) messageRepo.markRead(threadIds) else messageRepo.markUnread(threadIds)
+        if (read != null) {
+            if (read != 0) messageRepo.markRead(threadIds) else messageRepo.markUnread(threadIds)
+        }
+        if (archived != null) {
+            if (archived != 0) conversationRepo.markArchived(*threadIds.toLongArray())
+            else conversationRepo.markUnarchived(threadIds)
+        }
         conversationRepo.updateConversations(threadIds)
         return ids.size
     }
