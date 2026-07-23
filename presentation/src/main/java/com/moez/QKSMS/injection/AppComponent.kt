@@ -20,6 +20,7 @@ package dev.octoshrimpy.quik.injection
 
 import dagger.Component
 import dagger.android.support.AndroidSupportInjectionModule
+import dev.octoshrimpy.quik.adb.AdbMessagesProvider
 import dev.octoshrimpy.quik.common.QKApplication
 import dev.octoshrimpy.quik.common.QkDialog
 import dev.octoshrimpy.quik.common.util.QkChooserTargetService
@@ -62,6 +63,8 @@ interface AppComponent {
     fun themePickerBuilder(): ThemePickerComponent.Builder
 
     fun inject(application: QKApplication)
+
+    fun inject(provider: AdbMessagesProvider)
 
     fun inject(controller: AboutController)
     fun inject(controller: BackupController)
