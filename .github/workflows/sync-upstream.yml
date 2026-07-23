@@ -1,0 +1,42 @@
+name: Sync upstream
+
+# Keeps this fork's master up to date with octoshrimpy/quik while carrying the
+# fork's own additive changes (e.g. the adb SMS bridge). Runs daily and on demand.
+# The adb bridge is a new file + two tiny additive edits, so the merge is normally
+# conflict-free and auto-commits; on the rare conflict the job fails and opens an issue.
+
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 03:00 KST daily
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Merge upstream/master into master
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/octoshrimpy/quik.git
+          git fetch upstream master
+          git checkout master
+          if git merge --no-edit upstream/master; then
+            git push origin master
+            echo "Synced master with upstream/master."
+          else
+            git merge --abort || true
+            gh issue create \
+              --title "⚠️ upstream sync conflict $(date -u +%Y-%m-%d)" \
+              --body "Auto-merge of \`upstream/master\` into \`master\` hit a conflict. Resolve manually: fetch upstream, merge, and push." \
+              || true
+            exit 1
+          fi
