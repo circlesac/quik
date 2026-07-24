@@ -122,9 +122,11 @@ jobs:
           declare -A best
           for d in xml-mcc*-mnc*; do
             [[ -d "$d" && "$d" =~ ^xml-(mcc[0-9]+)-mnc([0-9]+)$ ]] || continue
-            key="${BASH_REMATCH[1]}-$((10#${BASH_REMATCH[2]}))"
+            mnc="${BASH_REMATCH[2]}"
+            key="${BASH_REMATCH[1]}-$((10#$mnc))"
             cur="${best[$key]:-}"
-            if [[ -z "$cur" ]] || (( ${#BASH_REMATCH[2]} > ${#cur#*-mnc} )); then
+            curmnc="${cur##*-mnc}"
+            if [[ -z "$cur" || ${#mnc} -gt ${#curmnc} ]]; then
               best[$key]="$d"
             fi
           done
