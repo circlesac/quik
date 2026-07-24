@@ -18,6 +18,16 @@ on:
         default: false
   workflow_call:
     inputs: *release-inputs
+    outputs:
+      version_name:
+        description: Release versionName computed by oneup (CalVer)
+        value: ${{ jobs.build.outputs.version_name }}
+      version_code:
+        description: Release versionCode
+        value: ${{ jobs.build.outputs.version_code }}
+      tag_name:
+        description: Release git tag (v${versionName})
+        value: ${{ jobs.build.outputs.tag_name }}
 
 concurrency:
   group: build-and-release-${{ github.ref_name }}
@@ -114,6 +124,15 @@ jobs:
             echo "key_alias=$KEY_ALIAS"
             echo "key_password=$KEY_PASSWORD"
           } >> "$GITHUB_ENV"
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Compute version (oneup CalVer)
+        # TODO: switch to a tagged/released oneup once circlesac/oneup#4 is merged
+        run: |
+          cargo install --git https://github.com/circlesac/oneup --branch feat/gradle-go-support --locked oneup || cargo install --git https://github.com/circlesac/oneup --branch feat/gradle-go-support oneup
+          oneup version --target presentation/build.gradle --format YY.MM.MICRO --verbose
 
       - name: Capture version metadata
         id: version

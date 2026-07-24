@@ -57,28 +57,27 @@ jobs:
         with:
           ref: master
 
+      # build.gradle is versionless in git; oneup computes the version during the
+      # release job. Consume that computed version instead of re-reading gradle
+      # (re-running oneup here would increment past the just-released tag).
       - name: Determine release version
         if: steps.cfg.outputs.ready == 'true'
         id: version
         shell: bash
+        env:
+          VERSION_NAME: ${{ needs.release.outputs.version_name }}
+          VERSION_CODE: ${{ needs.release.outputs.version_code }}
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          import os
-          import pathlib
-          import re
-
-          gradle = pathlib.Path("presentation/build.gradle").read_text()
-          code_match = re.search(r"^\s*versionCode\s+(\d+)", gradle, re.MULTILINE)
-          name_match = re.search(r"^\s*versionName\s+['\"]([\d\.]+)['\"]", gradle, re.MULTILINE)
-          if not code_match or not name_match:
-              raise SystemExit("Unable to read versionCode/versionName from presentation/build.gradle")
-          version_name = name_match.group(1)
-          version_code = code_match.group(1)
-          branch = f"fdroid-release-v{version_name}"
-          out = pathlib.Path(os.environ["GITHUB_OUTPUT"])
-          out.write_text(f"version_name={version_name}\nversion_code={version_code}\nbranch_name={branch}\n")
-          PY
+          if [[ -z "${VERSION_NAME:-}" ]]; then
+            echo "::error title=Missing version::release job did not provide a version_name output." >&2
+            exit 1
+          fi
+          {
+            echo "version_name=${VERSION_NAME}"
+            echo "version_code=${VERSION_CODE}"
+            echo "branch_name=fdroid-release-v${VERSION_NAME}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Sync fdroiddata fork
         if: steps.cfg.outputs.ready == 'true'
