@@ -202,6 +202,14 @@ class MessagesAdapter @Inject constructor(
         // Update the selected state
         holder.itemView.isActivated = isSelected(message.id) || highlight == message.id
 
+        // Visibly highlight the message jumped to from a search result. The activated state
+        // alone is near-invisible (bubbles have no state_activated drawable), so overlay a
+        // translucent highlight tint on the row.
+        holder.itemView.foreground = when (highlight == message.id) {
+            true -> android.graphics.drawable.ColorDrawable(colors.theme().highlight.withAlpha(0x66))
+            false -> null
+        }
+
         // Get views based on message type
         val isOutgoing = message.isMe()
         val timestamp: TextView
