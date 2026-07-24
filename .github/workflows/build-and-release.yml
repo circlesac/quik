@@ -47,7 +47,6 @@ jobs:
       version_code: ${{ steps.version.outputs.version_code }}
       tag_name: ${{ steps.version.outputs.tag_name }}
       apk_release_path: ${{ steps.release_artifact.outputs.apk_release_path }}
-      apk_fdroid_path: ${{ steps.fdroid_artifact.outputs.apk_fdroid_path }}
       checksums_path: ${{ steps.checksums.outputs.checksums_path }}
 
     steps:
@@ -65,26 +64,6 @@ jobs:
           if ! git merge-base --is-ancestor HEAD origin/master; then
             echo "::error title=Release blocked::${RELEASE_REF} is not merged into master. Merge the release PR first."
             exit 1
-          fi
-
-      - name: Checkout published F-Droid repo (if available)
-        id: checkout_pages
-        continue-on-error: true
-        uses: actions/checkout@v6
-        with:
-          ref: gh-pages
-          path: gh-pages
-
-      - name: Restore previous F-Droid artifacts
-        if: steps.checkout_pages.outcome == 'success'
-        run: |
-          set -euo pipefail
-          if [[ -d gh-pages/fdroid ]]; then
-            rm -rf repo
-            mkdir -p repo
-            cp -a gh-pages/fdroid/. repo/
-          else
-            mkdir -p repo
           fi
 
       - name: Set up JDK 17
@@ -155,7 +134,7 @@ jobs:
         uses: gradle/actions/wrapper-validation@v3
 
       - name: Build signed release APK
-        run: ./gradlew clean assembleRelease assembleFdroid
+        run: ./gradlew clean assembleRelease
 
       - name: Locate release artifact
         id: release_artifact
@@ -170,19 +149,6 @@ jobs:
           fi
           echo "apk_release_path=${files[0]}" >> "$GITHUB_OUTPUT"
 
-      - name: Locate f-droid artifact
-        id: fdroid_artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          files=(presentation/build/outputs/apk/fdroid/QUIK-v*-fdroid.apk)
-          if [[ "${#files[@]}" -ne 1 ]]; then
-            echo "::error title=APK lookup failed::Expected 1 APK, found ${#files[@]} (${files[*]:-none})."
-            exit 1
-          fi
-          echo "apk_fdroid_path=${files[0]}" >> "$GITHUB_OUTPUT"
-
       - name: Generate checksum
         id: checksums
         shell: bash
@@ -196,7 +162,6 @@ jobs:
           name: build-artifacts
           path: |
             ${{ steps.release_artifact.outputs.apk_release_path }}
-            ${{ steps.fdroid_artifact.outputs.apk_fdroid_path }}
             ${{ steps.checksums.outputs.checksums_path }}
 
   generate_release_notes:
@@ -252,33 +217,6 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install F-Droid tooling
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fdroidserver aapt apksigner
-
-      - name: Update F-Droid repo contents
-        env:
-          APK_PATH: ${{ needs.build.outputs.apk_release_path }}
-          VERSION_NAME: ${{ needs.build.outputs.version_name }}
-          VERSION_CODE: ${{ needs.build.outputs.version_code }}
-        run: |
-          set -euo pipefail
-          mkdir -p repo
-          target_apk="repo/dev.octoshrimpy.quik_${VERSION_CODE}.apk"
-          cp "$APK_PATH" "$target_apk"
-          fdroid update --config config.yml --pretty
-
-      - name: Publish F-Droid repo to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: repo
-          destination_dir: fdroid
-          user_name: github-actions[bot]
-          user_email: github-actions[bot]@users.noreply.github.com
 
       - name: Cleanup signing key
         if: always()
