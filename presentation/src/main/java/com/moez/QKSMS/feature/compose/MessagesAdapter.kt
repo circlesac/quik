@@ -28,6 +28,8 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.SpannableStringBuilder
 import android.text.method.LinkMovementMethod
+import android.text.Spanned
+import android.text.style.BackgroundColorSpan
 import android.text.style.ClickableSpan
 import android.text.style.StyleSpan
 import android.text.style.URLSpan
@@ -133,6 +135,14 @@ class MessagesAdapter @Inject constructor(
 
     var theme: Colors.Theme = colors.theme()
 
+    /** Current search query — occurrences are highlighted in each message body. */
+    var query: String = ""
+        set(value) {
+            if (field == value) return
+            field = value
+            notifyDataSetChanged()
+        }
+
     private val audioState = AudioState()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): QkViewHolder {
@@ -200,15 +210,7 @@ class MessagesAdapter @Inject constructor(
         }
 
         // Update the selected state
-        holder.itemView.isActivated = isSelected(message.id) || highlight == message.id
-
-        // Visibly highlight the message jumped to from a search result. The activated state
-        // alone is near-invisible (bubbles have no state_activated drawable), so overlay a
-        // translucent highlight tint on the row.
-        holder.itemView.foreground = when (highlight == message.id) {
-            true -> android.graphics.drawable.ColorDrawable(colors.theme().highlight.withAlpha(0x66))
-            false -> null
-        }
+        holder.itemView.isActivated = isSelected(message.id)
 
         // Get views based on message type
         val isOutgoing = message.isMe()
@@ -406,6 +408,21 @@ class MessagesAdapter @Inject constructor(
                 }
             }
             else -> body.movementMethod = LinkMovementMethod.getInstance()
+        }
+
+        // Highlight the search query within the message body (index on the original string —
+        // removeAccents()/NFD would decompose Hangul and shift indices, crashing setSpan)
+        if (query.isNotEmpty()) {
+            var i = spanString.indexOf(query, ignoreCase = true)
+            while (i >= 0) {
+                spanString.setSpan(
+                    BackgroundColorSpan(android.graphics.Color.argb(0xB3, 0xFF, 0xC1, 0x07)),
+                    i,
+                    minOf(i + query.length, spanString.length),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                i = spanString.indexOf(query, i + query.length, ignoreCase = true)
+            }
         }
 
         body.apply {

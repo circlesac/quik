@@ -456,6 +456,7 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
         binding.messageList.setVisible(!state.editingMode || state.sendAsGroup || state.selectedChips.size == 1)
         messageAdapter.conversationAndMessages = state.messages
         messageAdapter.highlight = state.searchSelectionId
+        messageAdapter.query = state.query
 
         binding.scheduledGroup.isVisible = state.scheduled != 0L
         binding.scheduledTime.text = dateFormatter.getScheduledTimestamp(state.scheduled)
