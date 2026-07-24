@@ -21,6 +21,7 @@ package dev.octoshrimpy.quik.common.base
 import android.view.View
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import dev.octoshrimpy.quik.common.util.extensions.setVisible
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.Subject
@@ -118,6 +119,14 @@ abstract class QkRealmAdapter<T, VH : QkViewHolder> : RecyclerView.Adapter<VH>()
     }
 
     override fun getItemCount(): Int = data.size
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        // updateData dispatches DiffUtil change events for freshly-reloaded Room snapshots.
+        // The default cross-fade change animation makes those rebinds look like ghosting/
+        // afterimages and janks scrolling, so disable change animations on these lists.
+        (recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+    }
 
     open fun updateData(data: List<T>?) {
         val newData = data ?: emptyList()
