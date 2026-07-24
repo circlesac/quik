@@ -137,6 +137,8 @@ class ConversationsAdapter @Inject constructor(
         return getItem(position)?.id ?: -1
     }
 
+    override fun areItemsTheSame(old: Conversation, new: Conversation): Boolean = old.id == new.id
+
     override fun getItemViewType(position: Int): Int {
         return if (getItem(position)?.unread == false) 0 else 1
     }

@@ -19,6 +19,7 @@
 package dev.octoshrimpy.quik.common.base
 
 import android.view.View
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import dev.octoshrimpy.quik.common.util.extensions.setVisible
 import io.reactivex.subjects.BehaviorSubject
@@ -119,8 +120,30 @@ abstract class QkRealmAdapter<T, VH : QkViewHolder> : RecyclerView.Adapter<VH>()
     override fun getItemCount(): Int = data.size
 
     open fun updateData(data: List<T>?) {
-        this.data = data ?: emptyList()
-        emptyView?.setVisible(this.data.isEmpty())
-        notifyDataSetChanged()
+        val newData = data ?: emptyList()
+        if (this.data === newData) return
+
+        val oldData = this.data
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = oldData.size
+            override fun getNewListSize() = newData.size
+            override fun areItemsTheSame(oldPos: Int, newPos: Int) =
+                this@QkRealmAdapter.areItemsTheSame(oldData[oldPos], newData[newPos])
+
+            override fun areContentsTheSame(oldPos: Int, newPos: Int) =
+                this@QkRealmAdapter.areContentsTheSame(oldData[oldPos], newData[newPos])
+        })
+        this.data = newData
+        // Dispatch fine-grained change events (insert/remove/change) so observers such
+        // as auto-scroll-to-bottom (which listen for item insertions) keep working.
+        diff.dispatchUpdatesTo(this)
+        emptyView?.setVisible(newData.isEmpty())
     }
+
+    /** Item identity for diffing. Override to compare stable ids so inserts/removes
+     *  are detected across data reloads (default: reference equality). */
+    protected open fun areItemsTheSame(old: T, new: T): Boolean = old === new
+
+    /** Whether visible contents are unchanged. Default false → surviving items rebind. */
+    protected open fun areContentsTheSame(old: T, new: T): Boolean = false
 }

@@ -500,6 +500,8 @@ class MessagesAdapter @Inject constructor(
         return getItem(position)?.id ?: -1
     }
 
+    override fun areItemsTheSame(old: Message, new: Message): Boolean = old.id == new.id
+
     override fun getItemViewType(position: Int): Int {
         val message = getItem(position) ?: return -1
         return when (message.isMe()) {
