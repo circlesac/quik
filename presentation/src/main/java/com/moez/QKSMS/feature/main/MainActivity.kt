@@ -37,6 +37,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.jakewharton.rxbinding2.view.clicks
 import com.jakewharton.rxbinding2.widget.textChanges
@@ -88,7 +89,7 @@ class MainActivity : QkThemedActivity(), MainView {
     override val onNewIntentIntent: Subject<Intent> = PublishSubject.create()
     override val activityResumedIntent: Subject<Boolean> = PublishSubject.create()
     override val queryChangedIntent by lazy { binding.toolbarSearch.textChanges() }
-    override val composeIntent by lazy { binding.compose.clicks() }
+    override val composeIntent: Subject<Unit> = PublishSubject.create()
     override val drawerToggledIntent: Observable<Boolean> by lazy {
         binding.drawerLayout.drawerOpen(Gravity.START)
     }
@@ -138,6 +139,19 @@ class MainActivity : QkThemedActivity(), MainView {
     }
     private val changelogDialog by lazy { ChangelogDialog(this) }
     private val backPressedSubject: Subject<NavItem> = PublishSubject.create()
+    private var composeScrolled = false
+
+    private fun setComposeScrolled(scrolled: Boolean) {
+        if (composeScrolled == scrolled) return
+        composeScrolled = scrolled
+        binding.compose.setImageResource(
+            if (scrolled) R.drawable.ic_keyboard_arrow_up_black_24dp
+            else R.drawable.ic_add_black_24dp
+        )
+        binding.compose.contentDescription = getString(
+            if (scrolled) R.string.main_fab_scroll_top_cd else R.string.main_fab_cd
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AndroidInjection.inject(this)
@@ -166,6 +180,19 @@ class MainActivity : QkThemedActivity(), MainView {
 
         itemTouchCallback.adapter = conversationsAdapter
         conversationsAdapter.autoScrollToStart(binding.recyclerView)
+
+        // The compose FAB doubles as a scroll-to-top button: once the list is scrolled
+        // down, the "+" morphs into an up arrow and tapping it returns to the top instead
+        // of starting a new conversation
+        binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                setComposeScrolled(recyclerView.canScrollVertically(-1))
+            }
+        })
+        binding.compose.setOnClickListener {
+            if (composeScrolled) binding.recyclerView.smoothScrollToPosition(0)
+            else composeIntent.onNext(Unit)
+        }
 
         // Don't allow clicks to pass through the drawer layout
         binding.drawer.root.clicks().autoDisposable(scope()).subscribe()
@@ -313,6 +340,11 @@ class MainActivity : QkThemedActivity(), MainView {
 
             else -> {}
         }
+
+        // Keep the compose/scroll-to-top FAB icon in sync after data or page changes
+        // (e.g. switching Inbox <-> Archived resets the list to the top)
+        if (state.page is Inbox || state.page is Archived)
+            binding.recyclerView.post { setComposeScrolled(binding.recyclerView.canScrollVertically(-1)) }
 
         binding.drawer.inbox.isActivated = state.page is Inbox
         binding.drawer.archived.isActivated = state.page is Archived
