@@ -125,14 +125,10 @@ jobs:
             echo "key_password=$KEY_PASSWORD"
           } >> "$GITHUB_ENV"
 
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Compute version (oneup CalVer)
-        # gradle + git-tag support is on oneup main (circlesac/oneup#4).
-        # TODO: switch to `npm i -g @circlesac/oneup` (prebuilt, faster) once a release with gradle support is published.
+        # oneup >= 26.7.0 supports gradle targets + git-tag version source
         run: |
-          cargo install --git https://github.com/circlesac/oneup --locked oneup || cargo install --git https://github.com/circlesac/oneup oneup
+          npm install -g @circlesac/oneup
           oneup version --target presentation/build.gradle --format YY.MM.MICRO --verbose
 
       - name: Capture version metadata
