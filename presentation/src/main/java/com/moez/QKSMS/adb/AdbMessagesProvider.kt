@@ -152,8 +152,11 @@ class AdbMessagesProvider : ContentProvider() {
 
                 MatrixCursor(MESSAGE_COLUMNS).apply {
                     rows.take(limit).forEach { m ->
+                        // getSummary() returns the SMS body, or for MMS the subject + part
+                        // summaries (incl. image labels) — so MMS text is exposed too, not just
+                        // the empty `body` column.
                         addRow(arrayOf(
-                            m.id, m.id, m.threadId, m.contentId, m.address, m.body,
+                            m.id, m.id, m.threadId, m.contentId, m.address, m.getSummary(),
                             m.date, m.dateSent, if (m.read) 1 else 0, if (m.seen) 1 else 0,
                             m.type, m.boxId, m.subId, if (m.locked) 1 else 0
                         ))
