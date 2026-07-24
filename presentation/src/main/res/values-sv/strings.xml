@@ -91,7 +91,6 @@
     <string name="compose_title_selected">%d vald</string>
     <string name="compose_subtitle_results">%1$d av %2$d resultat</string>
     <string name="compose_send_group_title">Skicka som ett grupp-meddelande</string>
-    <string name="compose_send_group_summary">Mottagare och svar kommer att vara synligt för alla</string>
     <string name="compose_messages_empty">Det här är början på din konversation. Säg något snällt!</string>
     <string name="compose_vcard_label">Kontaktkort</string>
     <string name="compose_scheduled_for">Schemalagd tid:</string>

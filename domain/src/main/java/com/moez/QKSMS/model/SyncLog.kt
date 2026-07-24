@@ -18,9 +18,7 @@
  */
 package dev.octoshrimpy.quik.model
 
-import io.realm.RealmObject
-
-open class SyncLog : RealmObject() {
+open class SyncLog {
 
     var date: Long = System.currentTimeMillis()
 

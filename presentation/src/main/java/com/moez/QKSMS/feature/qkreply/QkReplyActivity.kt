@@ -148,7 +148,7 @@ class QkReplyActivity : QkThemedActivity(), QkReplyView {
         binding.toolbar.menu.findItem(R.id.expand)?.isVisible = !state.expanded
         binding.toolbar.menu.findItem(R.id.collapse)?.isVisible = state.expanded
 
-        adapter.data = state.data
+        adapter.conversationAndMessages = state.data
 
         binding.counter.text = state.remaining
         binding.counter.setVisible(binding.counter.text.isNotBlank())

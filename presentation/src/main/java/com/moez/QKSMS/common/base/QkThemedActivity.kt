@@ -33,8 +33,6 @@ import dev.octoshrimpy.quik.common.util.Colors
 import dev.octoshrimpy.quik.common.util.extensions.resolveThemeBoolean
 import dev.octoshrimpy.quik.common.util.extensions.resolveThemeColor
 import dev.octoshrimpy.quik.extensions.Optional
-import dev.octoshrimpy.quik.extensions.asObservable
-import dev.octoshrimpy.quik.extensions.mapNotNull
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
@@ -78,18 +76,17 @@ abstract class QkThemedActivity : QkActivity() {
 
                     conversation.recipients.size == 1 -> Observable.just(Optional(conversation.recipients.first()))
 
-                    else -> messageRepo.getLastIncomingMessage(conversation.id)
-                            .asObservable()
-                            .mapNotNull { messages -> messages.firstOrNull() }
-                            .distinctUntilChanged { message -> message.address }
-                            .mapNotNull { message ->
-                                conversation.recipients.find { recipient ->
-                                    phoneNumberUtils.compare(recipient.address, message.address)
+                    else -> {
+                        val recipient = messageRepo.getLastIncomingMessage(conversation.id)
+                                .firstOrNull()
+                                ?.let { message ->
+                                    conversation.recipients.find { recipient ->
+                                        phoneNumberUtils.compare(recipient.address, message.address)
+                                    }
                                 }
-                            }
-                            .map { recipient -> Optional(recipient) }
-                            .startWith(Optional(conversation.recipients.firstOrNull()))
-                            .distinctUntilChanged()
+                                ?: conversation.recipients.firstOrNull()
+                        Observable.just(Optional(recipient))
+                    }
                 }
             }
             .switchMap { colors.themeObservable(it.value) }

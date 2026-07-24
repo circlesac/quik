@@ -29,13 +29,14 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.squareup.moshi.Moshi
 import dev.octoshrimpy.quik.common.util.extensions.now
+import dev.octoshrimpy.quik.data.db.dao.MessageDao
+import dev.octoshrimpy.quik.data.db.toModel
 import dev.octoshrimpy.quik.model.BackupFile
 import dev.octoshrimpy.quik.model.Message
 import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.Observable
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.Subject
-import io.realm.Realm
 import okio.buffer
 import okio.source
 import timber.log.Timber
@@ -51,7 +52,8 @@ class BackupRepositoryImpl @Inject constructor(
     private val context: Context,
     private val moshi: Moshi,
     private val prefs: Preferences,
-    private val syncRepo: SyncRepository
+    private val syncRepo: SyncRepository,
+    private val messageDao: MessageDao
 ) : BackupRepository {
 
     data class Backup(
@@ -117,20 +119,15 @@ class BackupRepositoryImpl @Inject constructor(
         // If a backup or restore is already running, don't do anything
         if (isBackupOrRestoreRunning()) return
 
-        var messageCount: Int
+        // Get the messages, sorted by date
+        val messages = messageDao.getAllMessagesByDate().map { it.toModel() }
+        val messageCount = messages.size
 
         // Map all the messages into our object we'll use for the Json mapping
-        val backupMessages = Realm.getDefaultInstance().use { realm ->
-            // Get the messages from realm
-            val messages = realm.where(Message::class.java).sort("date").findAll().createSnapshot()
-            messageCount = messages.size
-
-            // Map the messages to the new format
-            messages.mapIndexed { index, message ->
-                // Update the progress
-                backupProgress.onNext(BackupRepository.Progress.Running(messageCount, index))
-                messageToBackupMessage(message)
-            }
+        val backupMessages = messages.mapIndexed { index, message ->
+            // Update the progress
+            backupProgress.onNext(BackupRepository.Progress.Running(messageCount, index))
+            messageToBackupMessage(message)
         }
 
         // Update the status, and set the progress to be indeterminate since we can no longer calculate progress
