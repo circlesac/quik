@@ -62,14 +62,7 @@ class SearchAdapter @Inject constructor(
         holder.binding.resultsHeader.setVisible(result.messages > 0 && previous?.messages == 0)
 
         val query = result.query
-        val title = SpannableString(result.conversation.getTitle())
-        var index = title.removeAccents().indexOf(query, ignoreCase = true)
-
-        while (index >= 0) {
-            title.setSpan(BackgroundColorSpan(highlightColor), index, index + query.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            index = title.indexOf(query, index + query.length, true)
-        }
-        holder.binding.title.text = title
+        holder.binding.title.text = highlight(result.conversation.getTitle(), query)
 
         holder.binding.avatars.recipients = result.conversation.recipients
 
@@ -77,10 +70,11 @@ class SearchAdapter @Inject constructor(
             true -> {
                 holder.binding.date.setVisible(true)
                 holder.binding.date.text = dateFormatter.getConversationTimestamp(result.conversation.date)
-                holder.binding.snippet.text = when (result.conversation.me) {
+                val snippetText = when (result.conversation.me) {
                     true -> context.getString(R.string.main_sender_you, result.conversation.snippet)
-                    false -> result.conversation.snippet
+                    false -> result.conversation.snippet ?: ""
                 }
+                holder.binding.snippet.text = highlight(snippetText, query)
             }
 
             false -> {
@@ -88,6 +82,26 @@ class SearchAdapter @Inject constructor(
                 holder.binding.snippet.text = context.getString(R.string.main_message_results, result.messages)
             }
         }
+    }
+
+    /** Returns [text] with every occurrence of [query] wrapped in the theme highlight colour. */
+    private fun highlight(text: CharSequence, query: String): SpannableString {
+        val spannable = SpannableString(text)
+        if (query.isEmpty()) return spannable
+
+        // NB: index against the original string — removeAccents() runs Unicode NFD, which
+        // decomposes Hangul syllables into jamo and shifts every index (crashing setSpan).
+        var index = spannable.indexOf(query, ignoreCase = true)
+        while (index >= 0) {
+            spannable.setSpan(
+                BackgroundColorSpan(highlightColor),
+                index,
+                minOf(index + query.length, spannable.length),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            index = spannable.indexOf(query, index + query.length, ignoreCase = true)
+        }
+        return spannable
     }
 
     override fun areItemsTheSame(old: SearchResult, new: SearchResult): Boolean {
