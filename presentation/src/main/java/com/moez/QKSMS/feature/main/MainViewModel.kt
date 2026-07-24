@@ -42,7 +42,6 @@ import dev.octoshrimpy.quik.listener.ContactAddedListener
 import dev.octoshrimpy.quik.manager.BillingManager
 import dev.octoshrimpy.quik.manager.ChangelogManager
 import dev.octoshrimpy.quik.manager.PermissionManager
-import dev.octoshrimpy.quik.manager.RatingManager
 import dev.octoshrimpy.quik.data.db.dao.SyncDao
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.EmojiReactionRepository
@@ -83,7 +82,6 @@ class MainViewModel @Inject constructor(
     private val externalNavigator: ExternalNavigator,
     private val permissionManager: PermissionManager,
     private val prefs: Preferences,
-    private val ratingManager: RatingManager,
     private val reactions: EmojiReactionRepository,
     private val syncContacts: SyncContacts,
     private val syncDao: SyncDao,
@@ -133,10 +131,6 @@ class MainViewModel @Inject constructor(
         disposables += billingManager.upgradeStatus
                 .subscribe { upgraded -> newState { copy(upgraded = upgraded) } }
 
-        // Show the rating UI
-        disposables += ratingManager.shouldShowRating
-                .subscribe { show -> newState { copy(showRating = show) } }
-
         // Fetch scheduled messages and assign it to hasScheduledMessage
         disposables += scheduledMessageRepo.getScheduledMessages()
             .map { messages ->
@@ -173,7 +167,6 @@ class MainViewModel @Inject constructor(
                     .subscribe { syncContacts.execute(Unit) }
         }
 
-        ratingManager.addSession()
         markAllSeen.execute(Unit)
     }
 
@@ -499,17 +492,6 @@ class MainViewModel @Inject constructor(
 //                    newState { copy(drawerOpen = false) }
 //                    navigator.showQksmsPlusActivity("main_banner")
 //                }
-
-        view.rateIntent
-                .autoDisposable(view.scope())
-                .subscribe {
-                    externalNavigator.showRating()
-                    ratingManager.rate()
-                }
-
-        view.dismissRatingIntent
-                .autoDisposable(view.scope())
-                .subscribe { ratingManager.dismiss() }
 
         view.conversationsSelectedIntent
                 .withLatestFrom(state) { selection, state ->

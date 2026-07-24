@@ -111,8 +111,6 @@ class MainActivity : QkThemedActivity(), MainView {
     }
     override val optionsItemIntent: Subject<Int> = PublishSubject.create()
 //    override val plusBannerIntent by lazy { plusBanner.clicks() }
-    override val dismissRatingIntent by lazy { binding.drawer.rateDismiss.clicks() }
-    override val rateIntent by lazy { binding.drawer.rateOkay.clicks() }
     override val conversationsSelectedIntent by lazy { conversationsAdapter.selectionChanges }
     override val confirmDeleteIntent: Subject<List<Long>> = PublishSubject.create()
     override val renameConversationIntent: Subject<String> = PublishSubject.create()
@@ -222,7 +220,6 @@ class MainActivity : QkThemedActivity(), MainView {
                     syncingBinding.syncingProgress.progressTintList = ColorStateList.valueOf(theme.theme)
                     syncingBinding.syncingProgress.indeterminateTintList = ColorStateList.valueOf(theme.theme)
                     binding.drawer.plusIcon.setTint(theme.theme)
-                    binding.drawer.rateIcon.setTint(theme.theme)
                     binding.compose.setBackgroundTint(theme.theme)
 
                     // Set the FAB compose icon color
@@ -298,7 +295,6 @@ class MainActivity : QkThemedActivity(), MainView {
         }
 //        plus.isVisible = state.upgraded
         binding.drawer.plusBanner.isVisible = !state.upgraded
-        binding.drawer.rateLayout.setVisible(state.showRating)
 
         binding.compose.setVisible(state.page is Inbox || state.page is Archived)
         conversationsAdapter.emptyView = binding.empty.takeIf {
