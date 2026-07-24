@@ -287,7 +287,7 @@ class MainViewModel @Inject constructor(
                     }
                     query
                 }
-                .filter { query -> query.length >= 2 }
+                .filter { query -> query.isNotEmpty() }
                 .distinctUntilChanged()
                 .doOnNext {
                     newState {
