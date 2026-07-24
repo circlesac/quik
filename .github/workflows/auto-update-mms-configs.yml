@@ -51,8 +51,17 @@ jobs:
       - name: Install APK tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends aapt apktool unzip
-          
+          sudo apt-get install -y --no-install-recommends unzip
+          # apt ships an old apktool (2.7.0) that fails to decode newer Google APKs,
+          # which is what made this job fail on roughly half the quarterly runs.
+          # Install the latest official apktool release instead.
+          apktool_jar=$(curl -sL https://api.github.com/repos/iBotPeaches/Apktool/releases/latest \
+            | grep browser_download_url | grep -o 'https://[^"]*\.jar')
+          sudo curl -sL -o /usr/local/bin/apktool.jar "$apktool_jar"
+          sudo curl -sL -o /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+          sudo chmod +x /usr/local/bin/apktool /usr/local/bin/apktool.jar
+          apktool --version
+
       - name: Download Messaging APK 
         run: apkeep -a com.google.android.apps.messaging /home/runner/work/quik/quik
 
