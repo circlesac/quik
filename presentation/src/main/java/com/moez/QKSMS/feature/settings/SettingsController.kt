@@ -173,8 +173,6 @@ class SettingsController : QkController<SettingsControllerBinding, SettingsView,
 
         binding.systemFont.checkbox?.isChecked = state.systemFontEnabled
 
-        binding.showStt.checkbox?.isChecked = state.showStt
-
         binding.unicode.checkbox?.isChecked = state.stripUnicodeEnabled
         binding.mobileOnly.checkbox?.isChecked = state.mobileOnly
 

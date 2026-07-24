@@ -27,8 +27,8 @@ import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.Rect
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.provider.ContactsContract
@@ -37,15 +37,13 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.text.format.DateFormat
 import android.view.ContextMenu
-import android.view.DragEvent.ACTION_DRAG_ENDED
-import android.view.DragEvent.ACTION_DRAG_EXITED
-import android.view.DragEvent.ACTION_DROP
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -106,6 +104,29 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
 
     private lateinit var binding: ComposeActivityBinding
 
+    // The input mic doubles as a speech-to-text button. Hide it while the soft keyboard is up
+    // (the keyboard has its own voice input); show it when the keyboard is down for quick dictation.
+    private var imeVisible = false
+    private var recordAudioMsgIntendedVisibility = View.VISIBLE
+
+    private fun updateRecordAudioMsgVisibility() {
+        // The mic wants to show (input empty) but the keyboard is up: hide it and let the
+        // input box grow into the freed slot. GONE (not INVISIBLE) so the slot is reclaimed.
+        val hiddenByKeyboard = recordAudioMsgIntendedVisibility == View.VISIBLE && imeVisible
+        binding.recordAudioMsg.visibility =
+            if (hiddenByKeyboard) View.GONE else recordAudioMsgIntendedVisibility
+
+        val lp = binding.messageBackground.layoutParams as ConstraintLayout.LayoutParams
+        if (hiddenByKeyboard) {
+            lp.endToStart = ConstraintLayout.LayoutParams.UNSET
+            lp.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+        } else {
+            lp.endToEnd = ConstraintLayout.LayoutParams.UNSET
+            lp.endToStart = R.id.send
+        }
+        binding.messageBackground.layoutParams = lp
+    }
+
     override val activityVisibleIntent: Subject<Boolean> = PublishSubject.create()
     override val chipsSelectedIntent: Subject<HashMap<String, String?>> = PublishSubject.create()
     override val chipDeletedIntent: Subject<Recipient> by lazy { chipsAdapter.chipDeleted }
@@ -141,12 +162,11 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     override val clearCurrentMessageIntent: Subject<Boolean> = PublishSubject.create()
     override val messageLinkAskIntent: Subject<Uri> by lazy { messageAdapter.messageLinkClicks }
     override val reactionClickIntent: Subject<Long> by lazy { messageAdapter.reactionClicks }
-    override val speechRecogniserIntent by lazy { binding.speechToTextIcon.clicks() }
+    override val speechRecogniserIntent by lazy { binding.recordAudioMsg.clicks() }
     override val shadeIntent by lazy { binding.shadeBackground.clicks() }
     override val recordAudioStartStopRecording: Subject<Boolean> = PublishSubject.create()
     override val recordAnAudioMessage: Observable<Unit> by lazy {
-        Observable.merge(binding.recordAudioMsg.clicks(),
-            binding.attachAnAudioMessageIcon.clicks(),
+        Observable.merge(binding.attachAnAudioMessageIcon.clicks(),
             binding.attachAnAudioMessageLabel.clicks())
     }
     override val recordAudioAbort by lazy { binding.audioMsgAbort.clicks() }
@@ -182,6 +202,20 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
         setContentView(binding.root)
         showBackButton(true)
         viewModel.bindView(this)
+
+        // Track soft-keyboard visibility so the STT mic hides while the keyboard is up.
+        // This screen uses stateHidden (no adjustResize), so window insets aren't reliably
+        // dispatched — detect the keyboard from the visible display frame instead.
+        binding.root.viewTreeObserver.addOnGlobalLayoutListener {
+            val visibleFrame = Rect()
+            binding.root.getWindowVisibleDisplayFrame(visibleFrame)
+            val rootHeight = binding.root.rootView.height
+            val keyboardVisible = rootHeight - visibleFrame.bottom > rootHeight * 0.15
+            if (keyboardVisible != imeVisible) {
+                imeVisible = keyboardVisible
+                updateRecordAudioMsgVisibility()
+            }
+        }
 
         binding.contentView.layoutTransition = LayoutTransition().apply {
             disableTransitionType(LayoutTransition.CHANGING)
@@ -220,11 +254,6 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
                     binding.camera.setBackgroundTint(it.theme); binding.camera.setTint(it.textPrimary)
                     binding.cameraLabel.setBackgroundTint(it.theme); binding.cameraLabel.setTint(it.textPrimary)
 
-                    // speech to text floating button
-                    binding.speechToTextIconBorder.setBackgroundTint(it.theme)
-                    binding.speechToTextIcon.setBackgroundTint(it.textPrimary)
-                    binding.speechToTextIcon.setTint(it.theme)
-
                     // audio message recording
                     binding.audioMsgRecord.setColor(it.theme)
                     binding.audioMsgPlayerPlayPause.setTint(it.theme)
@@ -244,33 +273,6 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
                 .mapNotNull { it }
                 .autoDisposable(scope())
                 .subscribe { registerForContextMenu(it) }
-
-            // drag drop handlers for speech-to-text icon
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                binding.speechToTextIcon.setOnLongClickListener {
-                    it.startDragAndDrop(null, View.DragShadowBuilder(binding.speechToTextFrame), null, 0)
-                    binding.speechToTextFrame.isVisible = false
-
-                    binding.contentView.setOnDragListener { _, event ->
-                        when (event.action) {
-                            ACTION_DROP -> {
-                                binding.speechToTextFrame.x = (event.x - (binding.speechToTextFrame.width / 2))
-                                binding.speechToTextFrame.y = (event.y - (binding.speechToTextFrame.height / 2))
-
-                                // get offset from root view as a percentage of root view for saving
-                                prefs.showSttOffsetX.set((binding.speechToTextFrame.x - binding.contentView.x) / binding.contentView.width)
-                                prefs.showSttOffsetY.set((binding.speechToTextFrame.y - binding.contentView.y) / binding.contentView.height)
-                            }
-
-                            ACTION_DRAG_ENDED, ACTION_DRAG_EXITED -> {
-                                binding.speechToTextFrame.isVisible = true
-                            }
-                        }
-                        true
-                    }
-                    true
-                }
-            }
 
             // start/stop audio message recording
             binding.audioMsgRecord.setOnClickListener {
@@ -370,16 +372,6 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     override fun onStart() {
         super.onStart()
         activityVisibleIntent.onNext(true)
-
-        // if first time stt icon is shown (since setting reset), pop up an instruction toast
-        if (prefs.showStt.get() &&
-            (prefs.showSttOffsetX.get() == Float.MIN_VALUE) &&
-            (prefs.showSttOffsetX.get() == Float.MIN_VALUE)) {
-            makeToast(R.string.compose_toast_drag_stt, Toast.LENGTH_LONG)
-            // reset to new flag value that indicates 'not first time through, but not customised'
-            prefs.showSttOffsetX.set(Float.MAX_VALUE)
-            prefs.showSttOffsetY.set(Float.MAX_VALUE)
-        }
     }
 
     override fun onPause() {
@@ -495,7 +487,8 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
 
         // show either send, audio msg record, or sendScheduled button
         binding.send.visibility = if (state.canSend && !state.loading && state.scheduled == 0L) View.VISIBLE else View.INVISIBLE
-        binding.recordAudioMsg.visibility = if (state.canSend && !state.loading) View.INVISIBLE else View.VISIBLE
+        recordAudioMsgIntendedVisibility = if (state.canSend && !state.loading) View.INVISIBLE else View.VISIBLE
+        updateRecordAudioMsgVisibility()
         binding.scheduledSend.visibility = if (state.canSend && (state.scheduled != 0L) && !state.loading) View.VISIBLE else View.INVISIBLE
 
         // if not in editing mode, and there are no non-me participants that can be sent to,
@@ -503,7 +496,8 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
         if (!state.editingMode && (state.validRecipientNumbers == 0)) {
             binding.composeBar.visibility = View.GONE
             binding.sim.visibility = View.GONE
-            binding.recordAudioMsg.visibility = View.GONE
+            recordAudioMsgIntendedVisibility = View.GONE
+            updateRecordAudioMsgVisibility()
             binding.noValidRecipients.visibility = View.VISIBLE
 
             // change constraint of messageList to constrain bottom to top of noValidRecipients
@@ -523,20 +517,6 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
         // if scheduling mode is set, show schedule dialog
         if (state.scheduling)
             scheduleAction.onNext(true)
-
-        // if stt is available and preference is set to show stt button
-        if (isSpeechRecognitionAvailable() && prefs.showStt.get()) {
-            binding.speechToTextFrame.isVisible = true
-
-            val xPercent = prefs.showSttOffsetX.get()
-            val yPercent = prefs.showSttOffsetY.get()
-
-            // if the stt icon has a custom position, move it
-            if ((xPercent != Float.MAX_VALUE) && (yPercent != Float.MAX_VALUE)) {
-                binding.speechToTextFrame.x = (binding.contentView.x + (xPercent * binding.contentView.width))
-                binding.speechToTextFrame.y = (binding.contentView.y + (yPercent * binding.contentView.height))
-            }
-        }
     }
 
     override fun clearSelection() = messageAdapter.clearSelection()

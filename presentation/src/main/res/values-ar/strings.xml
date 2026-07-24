@@ -480,13 +480,11 @@
     <string name="compose_message_sim">رقم الشريحة</string>
     <string name="compose_message_item">بند الرسالة</string>
     <string name="compose_message_attachment">الملحق</string>
-    <string name="compose_toast_drag_stt">انقل زر تحويل الكلام إلى نص إلى أي مكان تريده</string>
     <string name="message_body_too_long_to_display">⚠ الرسالة طويلة. انسخها أو احفظها لعرض النص الكامل</string>
     <string name="clipboard_too_large_to_copy">حجم البيانات يتجاوز الحد المسموح به في الحافظة</string>
     <string name="clipboard_unable_to_copy_to">تعذر النسخ إلى الحافظة</string>
     <string name="scheduled_send_cd">تمت جدولة هذه الرسائل</string>
     <string name="attachment_missing">مفقود</string>
-    <string name="settings_system_show_stt_title">إظهار زر تحويل الكلام إلى نص</string>
     <string name="settings_notification_previews_summary">إظهار الاسم والرسالة</string>
     <string name="settings_notification_silent_title">صامت إن لم يكن جهة اتصال</string>
     <string name="settings_notification_silent_summary">يقوم هذا الخيار بكتم الإشعارات الخاصة بالرسائل التي لا يوجد مستلمون لها في جهات اتصالك</string>

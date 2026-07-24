@@ -166,7 +166,6 @@
     <string name="compose_message_sim">Numer karty SIM</string>
     <string name="compose_message_item">Element wiadomości</string>
     <string name="compose_message_attachment">Załącznik</string>
-    <string name="compose_toast_drag_stt">Przesuń przycisk zamiany mowy na tekst w dowolne miejsce</string>
     <string name="message_status_sending">Wysyłanie…</string>
     <string name="message_status_delivered">Dostarczono %s</string>
     <string name="message_status_failed">Nie udało się wysłać wiadomości. Dotknij, aby spróbować ponownie</string>
@@ -234,7 +233,6 @@
     <string name="settings_automatic_colors_title">Automatyczne kolory kontaktów</string>
     <string name="settings_text_size_title">Rozmiar czcionki</string>
     <string name="settings_system_font_title">Używaj czcionki systemowej</string>
-    <string name="settings_system_show_stt_title">Pokaż przycisk zamiany mowy na tekst</string>
     <string name="settings_auto_emoji_title">Automatyczne emoji</string>
     <string name="settings_notifications_title">Powiadomienia</string>
     <string name="settings_notifications_o_summary">Dotknij, aby ustawić</string>

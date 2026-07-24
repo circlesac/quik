@@ -451,13 +451,11 @@
     <string name="compose_message_sim">SIM नंबर</string>
     <string name="compose_message_item">संदेश आइटम</string>
     <string name="compose_message_attachment">संलग्नक</string>
-    <string name="compose_toast_drag_stt">स्पीच-टू-टेक्स्ट बटन को अपनी पसंद के अनुसार कहीं भी ले जाएँ</string>
     <string name="message_body_too_long_to_display">⚠ संदेश लंबा है। पूरा टेक्स्ट देखने के लिए कॉपी करें या सेव करें</string>
     <string name="clipboard_too_large_to_copy">डेटा साइज क्लिपबोर्ड सीमा से अधिक है</string>
     <string name="clipboard_unable_to_copy_to">क्लिपबोर्ड पर कॉपी नहीं किया जा सका</string>
     <string name="scheduled_send_cd">इस संदेश को शेड्यूल करें</string>
     <string name="attachment_missing">अनुपस्थित</string>
-    <string name="settings_system_show_stt_title">स्पीच-टू-टेक्स्ट बटन दिखाएँ</string>
     <string name="settings_notification_previews_summary">नाम और संदेश दिखाएँ</string>
     <string name="settings_notification_silent_title">यदि संपर्क में नहीं है तो साइलेंट रखें</string>
     <string name="settings_notification_silent_summary">आपके संपर्कों में न होने वाले प्राप्तकर्ताओं के संदेशों की सूचनाएँ साइलेंट कर देता है</string>

@@ -444,7 +444,6 @@
     <string name="compose_message_send_now">Şimdi gönder</string>
     <string name="compose_message_sim">SIM numarası</string>
     <string name="compose_message_attachment">Ek</string>
-    <string name="compose_toast_drag_stt">Sesle yazma butonunu istediğiniz yere taşıyın</string>
     <string name="message_body_too_long_to_display">⚠ İleti çok uzun. Metnin tümü için Kopyala ya da Kaydet</string>
     <string name="compose_no_valid_recipients">Diğer katılımcılara gönderilemez</string>
     <string name="compose_message_item">İleti öğesi</string>
@@ -452,7 +451,6 @@
     <string name="clipboard_unable_to_copy_to">Panoya kopyalanamıyor</string>
     <string name="scheduled_send_cd">Bu iletiyi planla</string>
     <string name="attachment_missing">Eksik</string>
-    <string name="settings_system_show_stt_title">Konuşmadan metne düğmesini göster</string>
     <string name="settings_notification_previews_summary">İsim ve ileti göster</string>
     <string name="settings_notification_silent_title">Kişilerde yoksa sessiz</string>
     <string name="settings_notification_silent_summary">Kişilerinizde alıcısı olmayan iletiler için bildirimleri sessize alır</string>

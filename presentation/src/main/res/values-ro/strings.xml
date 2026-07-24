@@ -163,7 +163,6 @@
     <string name="compose_message_sim">Număr SIM</string>
     <string name="compose_message_item">Elementul mesajului</string>
     <string name="compose_message_attachment">Atașament</string>
-    <string name="compose_toast_drag_stt">Mută butonul vorbire-în-text oriunde îți place</string>
     <string name="message_status_sending">Se trimite…</string>
     <string name="message_status_delivered">Livrat %s</string>
     <string name="message_status_failed">Trimitere eșuată. Atinge pentru a încerca din nou</string>
@@ -231,7 +230,6 @@
     <string name="settings_automatic_colors_title">Culori de contact automate</string>
     <string name="settings_text_size_title">Dimensiunea fontului</string>
     <string name="settings_system_font_title">Folosește fontul sistemului</string>
-    <string name="settings_system_show_stt_title">Arată butonul vorbire-în-text</string>
     <string name="settings_auto_emoji_title">Emoji automat</string>
     <string name="settings_notifications_title">Notificări</string>
     <string name="settings_notifications_o_summary">Atinge pentru a personaliza</string>

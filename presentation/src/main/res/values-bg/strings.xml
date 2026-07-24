@@ -146,7 +146,6 @@
     <string name="compose_message_sim">Номер на SIM-картата</string>
     <string name="compose_message_item">Елемент на съобщението</string>
     <string name="compose_message_attachment">Прикачен файл</string>
-    <string name="compose_toast_drag_stt">Преместване на бутона за преобразуване на реч в текст на място по желание</string>
     <string name="message_status_sending">Изпращане…</string>
     <string name="message_status_delivered">Доставено %s</string>
     <string name="message_status_failed">Грешка при изпращане. Докоснете за нов опит</string>
@@ -221,7 +220,6 @@
     <string name="settings_automatic_colors_title">Автоматични цветове на контактите</string>
     <string name="settings_text_size_title">Размер на шрифта</string>
     <string name="settings_system_font_title">Използване на системния шрифт</string>
-    <string name="settings_system_show_stt_title">Бутон за превръщане на реч в текст</string>
     <string name="settings_auto_emoji_title">Автоматични емоции</string>
     <string name="settings_notifications_title">Известия</string>
     <string name="settings_notifications_o_summary">Докоснете за настройки</string>

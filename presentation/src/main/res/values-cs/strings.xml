@@ -460,7 +460,6 @@
     <string name="compose_message_sim">Číslo SIM karty</string>
     <string name="compose_message_item">Položka zprávy</string>
     <string name="compose_message_attachment">Příloha</string>
-    <string name="compose_toast_drag_stt">Přesuňte tlačítko pro převod řeči na text kamkoli chcete</string>
     <string name="all_conversations_widget_title">Všechny konverzace</string>
     <string name="button_clear">Vymazat</string>
     <plurals name="toast_archived">
@@ -490,7 +489,6 @@
     <string name="clipboard_unable_to_copy_to">Nelze zkopírovat do schránky</string>
     <string name="scheduled_send_cd">Naplánovat tuto zprávu</string>
     <string name="attachment_missing">Chybí</string>
-    <string name="settings_system_show_stt_title">Zobrazit tlačítko pro převod řeči na text</string>
     <string name="settings_notification_previews_summary">Zobrazit jméno a zprávu</string>
     <string name="settings_notification_silent_title">Tichý, pokud není v kontaktech</string>
     <string name="settings_notification_silent_summary">Ztlumí oznámení o zprávách, pokud není příjemce v kontaktech</string>

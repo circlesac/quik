@@ -453,11 +453,9 @@
     <string name="compose_record_audio_msg_attach_cd">Legg til lydmelding</string>
     <string name="message_management_title">Melding Administrasjon</string>
     <string name="compose_record_audio_msg_play_pause_cd">Spill av eller sett lydmelding på pause</string>
-    <string name="compose_toast_drag_stt">Flytt tale-til-tekst knappen hvor som helst du vil</string>
     <string name="message_body_too_long_to_display">⚠ Meldingen er lang. Kopier eller Lagre for å se hele teksten</string>
     <string name="clipboard_too_large_to_copy">Datastørrelse overskrider utklippstavlens grense</string>
     <string name="clipboard_unable_to_copy_to">Kan ikke kopiere til utklippstavle</string>
-    <string name="settings_system_show_stt_title">Vis tale-til-tekst knappen</string>
     <string name="settings_notification_silent_title">Still om ikke en kontakt</string>
     <string name="settings_notification_silent_summary">Deaktiverer varsler for meldinger som ikke har mottakere i din kontaktliste</string>
     <string name="settings_unread_at_top_title">Uleste øverst</string>

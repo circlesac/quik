@@ -455,13 +455,11 @@
     <string name="compose_message_sim">Número SIM</string>
     <string name="compose_message_item">Item da mensagem</string>
     <string name="compose_message_attachment">Anexo</string>
-    <string name="compose_toast_drag_stt">Mover botão \"Áudio para texto\" livremente</string>
     <string name="message_body_too_long_to_display">⚠ Mensagem demasiado grande. Copie ou guarde para texto completo.</string>
     <string name="clipboard_too_large_to_copy">Os dados excedem o limite da área de transferência</string>
     <string name="clipboard_unable_to_copy_to">Não foi possível copiar para a área de transferência</string>
     <string name="scheduled_send_cd">Agendar esta mensagem</string>
     <string name="attachment_missing">Inexistente</string>
-    <string name="settings_system_show_stt_title">Mostrar botão \"Áudio para texto\"</string>
     <string name="settings_notification_previews_summary">Mostrar nome e mensagem</string>
     <string name="settings_notification_silent_title">Silenciar se não for um contacto</string>
     <string name="settings_unread_at_top_title">Não lidas em cima</string>

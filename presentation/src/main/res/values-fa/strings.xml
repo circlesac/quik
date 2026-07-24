@@ -458,12 +458,10 @@
     <string name="compose_message_send_now">اکنون بفرست</string>
     <string name="compose_message_sim">شماره سیم‌کارت</string>
     <string name="compose_record_audio_msg_play_pause_cd">پخش یا درنگ پیام صدایی</string>
-    <string name="compose_toast_drag_stt">بندیمه گفتار به نوشتار را به هر‌جا دوست دارید جابجا کنید</string>
     <string name="message_body_too_long_to_display">⚠ پیام بلند است. برای همه نوشتار، از آن رونگاشت گرفته یا بسِتَنجانید</string>
     <string name="compose_message_attachment">پیوست</string>
     <string name="scheduled_send_cd">برنامه‌ریزی این پیام</string>
     <string name="attachment_missing">ناپیدا</string>
-    <string name="settings_system_show_stt_title">نمایش بندیمه گفتار به نوشتار</string>
     <string name="settings_notification_silent_title">اگر همدرنگ نیست، بی‌صدا باشد</string>
     <string name="settings_mms_weblink_title">شیوه رسیدگی به پیوند‌ها در پیام‌ها</string>
     <string name="settings_unread_at_top_summary">نماش گفتگو‌های خوانده نشده در بالا</string>

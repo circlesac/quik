@@ -446,13 +446,11 @@
     <string name="compose_message_sim">SIM-Nummer</string>
     <string name="compose_message_item">Nachrichtenelement</string>
     <string name="compose_message_attachment">Anhang</string>
-    <string name="compose_toast_drag_stt">Verschiebe den \"Sprache zu Text\"-Knopf an eine beliebige Stelle</string>
     <string name="message_body_too_long_to_display">⚠ Die Nachricht ist lang. Kopieren oder Speichern für den vollständigen Text</string>
     <string name="clipboard_too_large_to_copy">Datengröße überschreitet Zwischenablagegrenze</string>
     <string name="clipboard_unable_to_copy_to">In die Zwischenablage kopieren nicht möglich</string>
     <string name="scheduled_send_cd">Diese Nachricht planen</string>
     <string name="attachment_missing">Fehlt</string>
-    <string name="settings_system_show_stt_title">„Sprache zu Text“-Knopf anzeigen</string>
     <string name="settings_notification_previews_summary">Name und Nachricht anzeigen</string>
     <string name="settings_notification_silent_title">Stumm, wenn kein Kontakt</string>
     <string name="settings_notification_silent_summary">Stummschalten von Benachrichtigungen für Nachrichten ohne Empfänger in deinen Kontakten</string>

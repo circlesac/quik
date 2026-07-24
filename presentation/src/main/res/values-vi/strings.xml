@@ -411,7 +411,6 @@
     <string name="dialog_edit_scheduled_message_title">Chỉnh sửa tin nhắn</string>
     <string name="dialog_clear_compose_title">Xóa nội dung</string>
     <string name="scheduled_send_cd">Hẹn giờ tin nhắn này</string>
-    <string name="settings_system_show_stt_title">Hiển thị nút chuyển đổi văn bản thành giọng nói</string>
     <string name="settings_notification_previews_summary">Hiện tên và tin nhắn</string>
     <string name="menu_mms_part_open">Mở bằng ứng dụng khác</string>
     <string name="main_menu_send_now">Gửi ngay</string>
@@ -440,7 +439,6 @@
     <string name="compose_message_sim">Số SIM</string>
     <string name="compose_message_item">Mục tin nhắn</string>
     <string name="compose_message_attachment">Tệp đính kèm</string>
-    <string name="compose_toast_drag_stt">Di chuyển nút chuyển giọng nói thành văn bản đến bất kỳ vị trí nào bạn muốn</string>
     <string name="message_body_too_long_to_display">⚠ Tin nhắn quá dài. Sao chép hoặc lưu lại để xem toàn bộ nội dung</string>
     <string name="settings_diable_screenshots_summary">Ngăn hệ điều hành và các ứng dụng khác chụp ảnh màn hình của ứng dụng.</string>
     <string name="settings_disable_screenshots_title">Tắt chức năng chụp ảnh màn hình</string>

@@ -445,13 +445,11 @@
     <string name="compose_message_send_now">Versturen</string>
     <string name="compose_message_sim">SIM nummer</string>
     <string name="compose_message_attachment">Bijlage</string>
-    <string name="compose_toast_drag_stt">Verplaats de spraak-naar-tekst knop naar door u gelieve plaats</string>
     <string name="message_body_too_long_to_display">⚠ Bericht is te lang. Kopieer of Bewaar voor de volledige tekst</string>
     <string name="clipboard_too_large_to_copy">Data grote overstijgt kladbord limiet</string>
     <string name="clipboard_unable_to_copy_to">Mislukt te kopiëren naar kladblok</string>
     <string name="scheduled_send_cd">Plan dit bericht</string>
     <string name="attachment_missing">Ontbreekt</string>
-    <string name="settings_system_show_stt_title">Toon de spraak-naar-tekst knop</string>
     <string name="settings_notification_previews_summary">Toon naam en bericht</string>
     <string name="settings_notification_silent_title">Stil wanneer geen contact</string>
     <string name="settings_notification_silent_summary">Stille notificaties voor berichten zonder ontvanger in uw contacten lijst</string>

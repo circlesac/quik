@@ -465,13 +465,11 @@
     <string name="compose_message_sim">Номер SIM</string>
     <string name="compose_message_item">Частина повідомлення</string>
     <string name="compose_message_attachment">Прикріплення</string>
-    <string name="compose_toast_drag_stt">Перемістити кнопку перетворення мови в текст куди завгодно</string>
     <string name="message_body_too_long_to_display">⚠ Повідомлення довге. Скопіювати або Зберегти для повного тексту</string>
     <string name="clipboard_too_large_to_copy">Розмір даних перевищує ліміт буфера обміну</string>
     <string name="clipboard_unable_to_copy_to">Неможливо скопіювати в буфер обміну</string>
     <string name="scheduled_send_cd">Розклад цього повідомлення</string>
     <string name="attachment_missing">Пропущено</string>
-    <string name="settings_system_show_stt_title">Показати кнопку перетворення мови в текст</string>
     <string name="settings_notification_previews_summary">Показати ім\'я і повідомлення</string>
     <string name="settings_notification_silent_title">Тиша, якщо не контакт</string>
     <string name="settings_notification_silent_summary">Заглушення сповіщень для повідомлень без одержувачів у ваших контактах</string>

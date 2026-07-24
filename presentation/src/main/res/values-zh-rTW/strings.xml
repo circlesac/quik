@@ -442,13 +442,11 @@
     <string name="compose_message_sim">SIM 卡號碼</string>
     <string name="compose_message_item">訊息項目</string>
     <string name="compose_message_attachment">附件</string>
-    <string name="compose_toast_drag_stt">將語音轉文字按鈕移動到任何位置</string>
     <string name="message_body_too_long_to_display">⚠ 訊息過長。請複製或儲存以查看完整內容</string>
     <string name="clipboard_too_large_to_copy">資料大小超過剪貼簿限制</string>
     <string name="clipboard_unable_to_copy_to">無法複製到剪貼簿</string>
     <string name="scheduled_send_cd">排程傳送此訊息</string>
     <string name="attachment_missing">缺少附件</string>
-    <string name="settings_system_show_stt_title">顯示語音轉文字按鈕</string>
     <string name="settings_notification_previews_summary">顯示名稱與訊息</string>
     <string name="settings_notification_silent_title">非聯絡人時靜音</string>
     <string name="settings_notification_silent_summary">將非聯絡人訊息的通知設為靜音</string>

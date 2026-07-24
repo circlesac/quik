@@ -450,13 +450,11 @@
     <string name="compose_message_sim">Número de SIM</string>
     <string name="compose_message_item">Elemento de mensaje</string>
     <string name="compose_message_attachment">Adjunto</string>
-    <string name="compose_toast_drag_stt">Mueve el botón de voz a texto a cualquier lugar que desees</string>
     <string name="message_body_too_long_to_display">⚠ El mensaje es largo. Copia o guarda para ver el texto completo.</string>
     <string name="clipboard_too_large_to_copy">El tamaño de los datos excede el límite del portapapeles</string>
     <string name="clipboard_unable_to_copy_to">No se puede copiar al portapapeles</string>
     <string name="scheduled_send_cd">Programar este mensaje</string>
     <string name="attachment_missing">Faltante</string>
-    <string name="settings_system_show_stt_title">Mostrar el botón de voz a texto</string>
     <string name="settings_notification_previews_summary">Mostrar nombre y mensaje</string>
     <string name="settings_notification_silent_title">Silenciar si no es contacto</string>
     <string name="settings_notification_silent_summary">Silencia las notificaciones de destinatarios que no están en tus contactos</string>
