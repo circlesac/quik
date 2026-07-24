@@ -26,6 +26,8 @@ import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkPresenter
 import dev.octoshrimpy.quik.interactor.DeleteConversations
 import dev.octoshrimpy.quik.repository.ConversationRepository
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.rxkotlin.plusAssign
 import javax.inject.Inject
 
 class BlockedMessagesPresenter @Inject constructor(
@@ -33,9 +35,13 @@ class BlockedMessagesPresenter @Inject constructor(
     private val blockingClient: BlockingClient,
     private val deleteConversations: DeleteConversations,
     private val navigator: Navigator
-) : QkPresenter<BlockedMessagesView, BlockedMessagesState>(BlockedMessagesState(
-        data = conversationRepo.getBlockedConversationsAsync()
-)) {
+) : QkPresenter<BlockedMessagesView, BlockedMessagesState>(BlockedMessagesState()) {
+
+    init {
+        disposables += conversationRepo.getBlockedConversationsAsync()
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { conversations -> newState { copy(data = conversations) } }
+    }
 
     override fun bindIntents(view: BlockedMessagesView) {
         super.bindIntents(view)

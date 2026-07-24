@@ -18,86 +18,61 @@
  */
 package dev.octoshrimpy.quik.repository
 
-import dev.octoshrimpy.quik.extensions.anyOf
+import dev.octoshrimpy.quik.data.db.toEntity
+import dev.octoshrimpy.quik.data.db.toModel
+import dev.octoshrimpy.quik.data.db.dao.BlockedNumberDao
 import dev.octoshrimpy.quik.model.BlockedNumber
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
-import io.realm.Realm
-import io.realm.RealmResults
+import io.reactivex.Observable
 import javax.inject.Inject
 
 class BlockingRepositoryImpl @Inject constructor(
+    private val blockedNumberDao: BlockedNumberDao,
     private val phoneNumberUtils: PhoneNumberUtils
 ) : BlockingRepository {
 
     override fun blockNumber(vararg addresses: String) {
-        Realm.getDefaultInstance().use { realm ->
-            realm.refresh()
-
-            val blockedNumbers = realm.where(BlockedNumber::class.java).findAll()
-            val newAddresses = addresses.filter { address ->
-                blockedNumbers.none { number -> phoneNumberUtils.compare(number.address, address) }
-            }
-
-            val maxId = realm.where(BlockedNumber::class.java)
-                    .max("id")?.toLong() ?: -1
-
-            realm.executeTransaction {
-                realm.insert(newAddresses.mapIndexed { index, address ->
-                    BlockedNumber(maxId + 1 + index, address)
-                })
-            }
+        val blockedNumbers = blockedNumberDao.getAll().map { it.toModel() }
+        val newAddresses = addresses.filter { address ->
+            blockedNumbers.none { number -> phoneNumberUtils.compare(number.address, address) }
         }
+
+        val maxId = blockedNumberDao.maxId() ?: 0L
+
+        val newBlockedNumbers = newAddresses.mapIndexed { index, address ->
+            BlockedNumber(maxId + 1 + index, address)
+        }
+
+        blockedNumberDao.insert(newBlockedNumbers.map { it.toEntity() })
     }
 
-    override fun getBlockedNumbers(): RealmResults<BlockedNumber> {
-        return Realm.getDefaultInstance()
-                .where(BlockedNumber::class.java)
-                .findAllAsync()
+    override fun getBlockedNumbers(): Observable<List<BlockedNumber>> {
+        return blockedNumberDao.getAllFlowable()
+                .map { list -> list.map { it.toModel() } }
+                .toObservable()
     }
 
     override fun getBlockedNumber(id: Long): BlockedNumber? {
-        return Realm.getDefaultInstance()
-                .where(BlockedNumber::class.java)
-                .equalTo("id", id)
-                .findFirst()
+        return blockedNumberDao.getById(id)?.toModel()
     }
 
     override fun isBlocked(address: String): Boolean {
-        return Realm.getDefaultInstance().use { realm ->
-            realm.where(BlockedNumber::class.java)
-                    .findAll()
-                    .any { number -> phoneNumberUtils.compare(number.address, address) }
-        }
+        return blockedNumberDao.getAll()
+                .any { number -> phoneNumberUtils.compare(number.address, address) }
     }
 
     override fun unblockNumber(id: Long) {
-        Realm.getDefaultInstance().use { realm ->
-            realm.executeTransaction {
-                realm.where(BlockedNumber::class.java)
-                        .equalTo("id", id)
-                        .findAll()
-                        .deleteAllFromRealm()
-            }
-        }
+        blockedNumberDao.deleteByIds(listOf(id))
     }
 
     override fun unblockNumbers(vararg addresses: String) {
-        Realm.getDefaultInstance().use { realm ->
-            val ids = realm.where(BlockedNumber::class.java)
-                    .findAll()
-                    .filter { number ->
-                        addresses.any { address -> phoneNumberUtils.compare(number.address, address) }
-                    }
-                    .map { number -> number.id }
-                    .toLongArray()
+        val ids = blockedNumberDao.getAll()
+                .filter { number ->
+                    addresses.any { address -> phoneNumberUtils.compare(number.address, address) }
+                }
+                .map { number -> number.id }
 
-            realm.executeTransaction {
-                realm.where(BlockedNumber::class.java)
-                        .anyOf("id", ids)
-                        .findAll()
-                        .deleteAllFromRealm()
-            }
-        }
+        blockedNumberDao.deleteByIds(ids)
     }
 
 }

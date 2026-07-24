@@ -47,7 +47,7 @@ class RemoteMessagingReceiver : BroadcastReceiver() {
 
         markRead.execute(listOf(threadId))
 
-        val lastMessage = messageRepo.getMessages(threadId).lastOrNull()
+        val lastMessage = messageRepo.getMessagesSync(threadId).lastOrNull()
         val conversation = conversationRepo.getConversation(threadId)
 
         val pendingRepository = goAsync()

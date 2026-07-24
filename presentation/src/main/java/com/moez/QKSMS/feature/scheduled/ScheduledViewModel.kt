@@ -26,7 +26,6 @@ class ScheduledViewModel @Inject constructor(
     private val sendScheduledMessageInteractor: SendScheduledMessage,
     private val deleteScheduledMessagesInteractor: DeleteScheduledMessages,
 ) : QkViewModel<ScheduledView, ScheduledState>(ScheduledState(
-    scheduledMessages = scheduledMessageRepo.getScheduledMessages(),
     conversationId = conversationId
 )) {
 
@@ -166,10 +165,14 @@ class ScheduledViewModel @Inject constructor(
     }
 
     private fun loadMessages(conversationId: Long?) {
-        val results = if (conversationId != null)
+        val messages = if (conversationId != null)
             scheduledMessageRepo.getScheduledMessagesForConversation(conversationId)
         else
             scheduledMessageRepo.getScheduledMessages()
-        newState { copy(scheduledMessages = results) }
+
+        disposables += messages
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { newState { copy(scheduledMessages = it) } }
     }
 }

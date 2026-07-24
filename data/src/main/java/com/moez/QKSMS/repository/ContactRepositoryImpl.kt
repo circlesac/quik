@@ -24,8 +24,9 @@ import android.provider.BaseColumns
 import android.provider.ContactsContract
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.Phone
+import dev.octoshrimpy.quik.data.db.dao.ContactDao
+import dev.octoshrimpy.quik.data.db.toModel
 import dev.octoshrimpy.quik.extensions.asFlowable
-import dev.octoshrimpy.quik.extensions.asObservable
 import dev.octoshrimpy.quik.extensions.mapNotNull
 import dev.octoshrimpy.quik.model.Contact
 import dev.octoshrimpy.quik.model.ContactGroup
@@ -33,17 +34,15 @@ import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.Single
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
-import io.realm.Realm
-import io.realm.RealmResults
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ContactRepositoryImpl @Inject constructor(
     private val context: Context,
-    private val prefs: Preferences
+    private val prefs: Preferences,
+    private val contactDao: ContactDao
 ) : ContactRepository {
 
     override fun findContactUri(address: String): Single<Uri> {
@@ -66,53 +65,43 @@ class ContactRepositoryImpl @Inject constructor(
                 .map { id -> Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, id) }
     }
 
-    override fun getContacts(): RealmResults<Contact> {
-        val realm = Realm.getDefaultInstance()
-        return realm.where(Contact::class.java)
-                .sort("name")
-                .findAll()
+    override fun getContacts(): Observable<List<Contact>> {
+        return contactDao.getContactsFlowable()
+                .map { it.map { entity -> entity.toModel() } }
+                .toObservable()
     }
 
     override fun getUnmanagedContact(lookupKey: String): Contact? {
-        return Realm.getDefaultInstance().use { realm ->
-            realm.where(Contact::class.java)
-                    .equalTo("lookupKey", lookupKey)
-                    .findFirst()
-                    ?.let(realm::copyFromRealm)
-        }
+        return contactDao.getContact(lookupKey)?.toModel()
     }
 
     override fun getUnmanagedAllContacts(): List<Contact> {
-        val realm = Realm.getDefaultInstance()
-
-        return realm
-            .where(Contact::class.java)
-            .findAll()
-            .map { realm.copyFromRealm(it) }
+        return contactDao.getContacts().map { it.toModel() }
     }
 
     override fun getUnmanagedContacts(starred: Boolean): Observable<List<Contact>> {
-        val realm = Realm.getDefaultInstance()
-
         val mobileOnly = prefs.mobileOnly.get()
         val mobileLabel by lazy { Phone.getTypeLabel(context.resources, Phone.TYPE_MOBILE, "Mobile").toString() }
 
-        var query = realm.where(Contact::class.java)
-
-        if (mobileOnly) {
-            query = query.contains("numbers.type", mobileLabel)
-        }
-
-        if (starred) {
-            query = query.equalTo("starred", true)
-        }
-
-        return query
-                .findAllAsync()
-                .asObservable()
-                .filter { it.isLoaded }
-                .filter { it.isValid }
-                .map { realm.copyFromRealm(it) }
+        return contactDao.getContactsFlowable()
+                .map { it.map { entity -> entity.toModel() } }
+                .toObservable()
+                .map { contacts ->
+                    if (mobileOnly) {
+                        contacts.filter { contact ->
+                            contact.numbers.any { number -> number.type == mobileLabel }
+                        }
+                    } else {
+                        contacts
+                    }
+                }
+                .map { contacts ->
+                    if (starred) {
+                        contacts.filter { it.starred }
+                    } else {
+                        contacts
+                    }
+                }
                 .map { contacts ->
                     if (mobileOnly) {
                         contacts.map { contact ->
@@ -142,32 +131,13 @@ class ContactRepositoryImpl @Inject constructor(
     }
 
     override fun getUnmanagedContactGroups(): Observable<List<ContactGroup>> {
-        val realm = Realm.getDefaultInstance()
-        return realm.where(ContactGroup::class.java)
-                .isNotEmpty("contacts")
-                .findAllAsync()
-                .asObservable()
-                .filter { it.isLoaded }
-                .filter { it.isValid }
-                .map { realm.copyFromRealm(it) }
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .observeOn(Schedulers.io())
+        return contactDao.getContactGroupsFlowable()
+                .map { it.map { entity -> entity.toModel() }.filter { group -> group.contacts.isNotEmpty() } }
+                .toObservable()
     }
 
     override fun setDefaultPhoneNumber(lookupKey: String, phoneNumberId: Long) {
-        Realm.getDefaultInstance().use { realm ->
-            realm.refresh()
-            val contact = realm.where(Contact::class.java)
-                    .equalTo("lookupKey", lookupKey)
-                    .findFirst()
-                    ?: return
-
-            realm.executeTransaction {
-                contact.numbers.forEach { number ->
-                    number.isDefault = number.id == phoneNumberId
-                }
-            }
-        }
+        contactDao.setDefaultPhoneNumber(lookupKey, phoneNumberId)
     }
 
     override fun isContact(address: String): Boolean {

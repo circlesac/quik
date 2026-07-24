@@ -48,7 +48,6 @@ import dev.octoshrimpy.quik.common.util.extensions.makeToast
 import dev.octoshrimpy.quik.common.widget.MicInputCloudView
 import dev.octoshrimpy.quik.common.widget.QkContextMenuRecyclerView
 import dev.octoshrimpy.quik.compat.SubscriptionManagerCompat
-import dev.octoshrimpy.quik.extensions.asObservable
 import dev.octoshrimpy.quik.extensions.isImage
 import dev.octoshrimpy.quik.extensions.isSmil
 import dev.octoshrimpy.quik.extensions.isText
@@ -165,7 +164,6 @@ class ComposeViewModel @Inject constructor(
 
         val initialConversation = threadId.takeIf { it != 0L }
             ?.let(conversationRepo::getConversationAsync)
-            ?.asObservable()
             ?: Observable.empty()
 
         val selectedConversation = selectedChips
@@ -179,8 +177,6 @@ class ComposeViewModel @Inject constructor(
             .switchMap { addresses ->
                 // monitors convos and triggers when wanted convo is present
                 conversationRepo.getConversations(false)
-                    .asObservable()
-                    .filter { conversations -> conversations.isLoaded && conversations.isValid}
                     .mapNotNull { conversationRepo.getConversation(addresses) }
                     .doOnNext { newState { copy(loading = false) } }
             }
@@ -195,10 +191,6 @@ class ComposeViewModel @Inject constructor(
         // activity to shut down
         disposables += selectedConversation
             .mergeWith(initialConversation)
-            .filter { it.isLoaded }
-            .filter { conversation ->
-                conversation.isValid.also { if (!it) newState { copy(hasError = true) } }
-            }
             .subscribe(conversation::onNext)
 
         if (addresses.isNotEmpty())
@@ -231,12 +223,12 @@ class ComposeViewModel @Inject constructor(
         disposables += conversation
                 .distinctUntilChanged { conversation -> conversation.id }
                 .observeOn(AndroidSchedulers.mainThread())
-                .map { conversation ->
-                    val messages = messageRepo.getMessages(conversation.id)
-                    newState { copy(threadId = conversation.id, messages = Pair(conversation, messages)) }
-                    messages
+                .switchMap { conversation ->
+                    messageRepo.getMessages(conversation.id)
+                        .map { messages -> Pair(conversation, messages) }
                 }
-                .switchMap { messages -> messages.asObservable() }
+                .doOnNext { pair -> newState { copy(threadId = pair.first.id, messages = pair) } }
+                .map { pair -> pair.second }
                 .subscribe(messages::onNext)
 
         disposables += conversation
@@ -248,10 +240,8 @@ class ComposeViewModel @Inject constructor(
                 .map { conversation -> conversation.id }
                 .distinctUntilChanged()
                 .withLatestFrom(state) { id, state -> messageRepo.getMessages(id, state.query) }
-                .switchMap { messages -> messages.asObservable() }
+                .switchMap { messages -> messages }
                 .takeUntil(state.map { it.query }.filter { it.isEmpty() })
-                .filter { messages -> messages.isLoaded }
-                .filter { messages -> messages.isValid }
                 .subscribe(searchResults::onNext)
 
         // on conversation change/init, work out how many non-me participants of the conversation
@@ -297,8 +287,6 @@ class ComposeViewModel @Inject constructor(
             .switchMap { conversation ->
                 scheduledMessageRepo
                     .getScheduledMessagesForConversation(conversation.id)
-                    .asFlowable()
-                    .toObservable()
             }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe { liveResults ->
@@ -783,7 +771,7 @@ class ComposeViewModel @Inject constructor(
                 .combineLatest(
                         view.activityVisibleIntent.distinctUntilChanged(),
                         conversation.mapNotNull { conversation ->
-                            conversation.takeIf { it.isValid }?.id
+                            conversation.id
                         }.distinctUntilChanged())
                 { visible, threadId ->
                     when (visible) {
@@ -802,7 +790,7 @@ class ComposeViewModel @Inject constructor(
         view.activityVisibleIntent
                 .filter { visible -> !visible }
                 .withLatestFrom(conversation) { _, conversation -> conversation }
-                .mapNotNull { conversation -> conversation.takeIf { it.isValid }?.id }
+                .mapNotNull { conversation -> conversation.id }
                 .observeOn(Schedulers.io())
                 .withLatestFrom(view.textChangedIntent, state) { threadId, draftText, state ->
                     if (state.saveDraft)

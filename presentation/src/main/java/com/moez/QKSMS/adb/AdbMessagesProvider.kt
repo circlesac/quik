@@ -28,12 +28,8 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Process
 import dev.octoshrimpy.quik.injection.appComponent
-import dev.octoshrimpy.quik.model.Conversation
-import dev.octoshrimpy.quik.model.Message
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
-import io.realm.Realm
-import io.realm.Sort
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -128,30 +124,40 @@ class AdbMessagesProvider : ContentProvider() {
         enforceCaller()
 
         return when (matcher.match(uri)) {
-            MESSAGES, MESSAGE_ID -> Realm.getDefaultInstance().use { realm ->
-                realm.refresh()
-                var q = realm.where(Message::class.java)
-
-                if (matcher.match(uri) == MESSAGE_ID)
-                    q = q.equalTo("id", ContentUris.parseId(uri))
-
-                uri.getQueryParameter("threadId")?.toLongOrNull()
-                    ?.let { q = q.equalTo("threadId", it) }
-
-                val results = q.sort("date", Sort.DESCENDING).findAll()
-
+            MESSAGES, MESSAGE_ID -> {
                 // Hide messages in archived conversations by default (an agenda/inbox view);
-                // pass ?includeArchived=1 to see them all.
-                val rows = if (uri.getQueryParameter("includeArchived") == "1") results.toList()
-                else {
-                    val archivedThreads = realm.where(Conversation::class.java)
-                        .equalTo("archived", true).findAll().map { it.id }.toSet()
-                    results.filter { it.threadId !in archivedThreads }
+                // pass ?includeArchived=1 to see them all. Room repos expose per-thread reads,
+                // so resolve the visible thread set from the conversation repo (non-archived,
+                // plus archived when requested) and filter/collect messages against it.
+                val includeArchived = uri.getQueryParameter("includeArchived") == "1"
+
+                val visibleThreadIds = (conversationRepo.getConversationsSnapshot(false) +
+                    if (includeArchived)
+                        conversationRepo.getConversations(unreadAtTop = false, archived = true)
+                            .blockingFirst()
+                    else emptyList())
+                    .map { it.id }
+                    .toSet()
+
+                val messages = when {
+                    matcher.match(uri) == MESSAGE_ID ->
+                        listOfNotNull(messageRepo.getMessage(ContentUris.parseId(uri)))
+
+                    else -> {
+                        val threadFilter = uri.getQueryParameter("threadId")?.toLongOrNull()
+                        val threadIds =
+                            if (threadFilter != null) listOf(threadFilter)
+                            else visibleThreadIds.toList()
+                        threadIds.flatMap { messageRepo.getMessagesSync(it) }
+                    }
                 }
-                val limit = uri.getQueryParameter("limit")?.toIntOrNull() ?: rows.size
+                    .filter { includeArchived || it.threadId in visibleThreadIds }
+                    .sortedByDescending { it.date }
+
+                val limit = uri.getQueryParameter("limit")?.toIntOrNull() ?: messages.size
 
                 MatrixCursor(MESSAGE_COLUMNS).apply {
-                    rows.take(limit).forEach { m ->
+                    messages.take(limit).forEach { m ->
                         // getSummary() returns the SMS body, or for MMS the subject + part
                         // summaries (incl. image labels) — so MMS text is exposed too, not just
                         // the empty `body` column.
@@ -164,11 +170,8 @@ class AdbMessagesProvider : ContentProvider() {
                 }
             }
 
-            CONVERSATIONS -> Realm.getDefaultInstance().use { realm ->
-                realm.refresh()
-                val results = realm.where(Conversation::class.java)
-                    .equalTo("archived", false)
-                    .findAll()
+            CONVERSATIONS -> {
+                val results = conversationRepo.getConversationsSnapshot(false)
                     .sortedByDescending { it.date }
 
                 MatrixCursor(CONVERSATION_COLUMNS).apply {
@@ -220,7 +223,7 @@ class AdbMessagesProvider : ContentProvider() {
         // Look up affected threads before deleting so we can refresh those conversations after.
         val threadIds = ids.mapNotNull { messageRepo.getUnmanagedMessage(it)?.threadId }.distinct()
 
-        // deleteMessages removes from both Realm and the system SMS provider (contentResolver.delete).
+        // deleteMessages removes from both the local store and the system SMS provider (contentResolver.delete).
         messageRepo.deleteMessages(ids)
         conversationRepo.updateConversations(threadIds)
 

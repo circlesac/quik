@@ -20,12 +20,14 @@ package dev.octoshrimpy.quik.repository
 
 import android.content.Context
 import com.squareup.moshi.Moshi
+import dev.octoshrimpy.quik.data.db.dao.EmojiReactionDao
+import dev.octoshrimpy.quik.data.db.dao.MessageDao
+import dev.octoshrimpy.quik.data.db.toEntity
+import dev.octoshrimpy.quik.data.db.toModel
 import dev.octoshrimpy.quik.manager.KeyManager
 import dev.octoshrimpy.quik.model.EmojiReaction
-import dev.octoshrimpy.quik.model.Message
 import dev.octoshrimpy.quik.util.EmojiPatternStrings
-import io.realm.Realm
-import io.realm.Sort
+import dev.octoshrimpy.quik.model.Message
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -33,6 +35,8 @@ class EmojiReactionRepositoryImpl @Inject constructor(
     private val context: Context,
     private val keyManager: KeyManager,
     private val moshi: Moshi,
+    private val emojiReactionDao: EmojiReactionDao,
+    private val messageDao: MessageDao,
 ) : EmojiReactionRepository {
     // We use an ordered map to make sure we can test tapback regexes before generic ones
     private val reactionPatterns: LinkedHashMap<Regex, (MatchResult) -> ParsedEmojiReaction?> = linkedMapOf(
@@ -179,14 +183,10 @@ class EmojiReactionRepositoryImpl @Inject constructor(
      */
     override fun findTargetMessage(
         threadId: Long,
-        originalMessageText: String,
-        realm: Realm
+        originalMessageText: String
     ): Message? {
         val startTime = System.currentTimeMillis()
-        val messages = realm.where(Message::class.java)
-            .equalTo("threadId", threadId)
-            .sort("date", Sort.DESCENDING)
-            .findAll()
+        val messages = messageDao.getMessagesByThreadDesc(threadId).map { it.toModel() }
         val endTime = System.currentTimeMillis()
         Timber.d("Found ${messages.size} messages as potential emoji targets in ${endTime - startTime}ms")
 
@@ -207,7 +207,6 @@ class EmojiReactionRepositoryImpl @Inject constructor(
         reactionMessage: Message,
         reaction: ParsedEmojiReaction,
         targetMessage: Message?,
-        realm: Realm,
     ) {
         if (targetMessage == null) {
             Timber.w("Cannot remove emoji reaction '${reaction.emoji}': no target message found")
@@ -219,24 +218,22 @@ class EmojiReactionRepositoryImpl @Inject constructor(
         }
 
         if (existingReaction != null) {
-            existingReaction.deleteFromRealm()
+            emojiReactionDao.deleteById(existingReaction.id)
             Timber.d("Removed emoji reaction: ${reaction.emoji} to message ${targetMessage.id}")
         } else {
             Timber.w("No existing emoji reaction found to remove: ${reaction.emoji} to message ${targetMessage.id}")
         }
 
-        reactionMessage.isEmojiReaction = true
-        realm.insertOrUpdate(reactionMessage)
+        messageDao.setIsEmojiReaction(reactionMessage.id, true)
     }
 
     override fun saveEmojiReaction(
         reactionMessage: Message,
         parsedReaction: ParsedEmojiReaction,
         targetMessage: Message?,
-        realm: Realm,
     ) {
         if (parsedReaction.isRemoval) {
-            removeEmojiReaction(reactionMessage, parsedReaction, targetMessage, realm)
+            removeEmojiReaction(reactionMessage, parsedReaction, targetMessage)
             return
         }
 
@@ -248,17 +245,12 @@ class EmojiReactionRepositoryImpl @Inject constructor(
             originalMessageText = parsedReaction.originalMessage
             threadId = reactionMessage.threadId
         }
-        realm.insertOrUpdate(reaction)
 
         if (targetMessage != null) {
-            reactionMessage.isEmojiReaction = true
-            realm.insertOrUpdate(reactionMessage)
-
             // Overwrite any previous reaction from this sender for this target
-            val priorFromSender = targetMessage.emojiReactions.filter { it.senderAddress == reaction.senderAddress }
-            priorFromSender.forEach { it.deleteFromRealm() }
-
-            targetMessage.emojiReactions.add(reaction)
+            emojiReactionDao.deleteForTargetAndSender(targetMessage.id, reaction.senderAddress)
+            emojiReactionDao.insert(reaction.toEntity(targetMessageId = targetMessage.id))
+            messageDao.setIsEmojiReaction(reactionMessage.id, true)
 
             Timber.i("Saved emoji reaction: ${reaction.emoji} to message ${targetMessage.id}")
         } else {
@@ -266,31 +258,16 @@ class EmojiReactionRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun deleteAndReparseAllEmojiReactions(realm: Realm, onProgress: (SyncRepository.SyncProgress) -> Unit) {
+    override fun deleteAndReparseAllEmojiReactions(onProgress: (SyncRepository.SyncProgress) -> Unit) {
         val startTime = System.currentTimeMillis()
 
-        realm.delete(EmojiReaction::class.java)
-        realm.where(Message::class.java).findAll().map {
-            it.isEmojiReaction = false
-        }
+        emojiReactionDao.deleteAll()
+        messageDao.clearAllEmojiReactionFlags()
 
-        val allMessages = realm.where(Message::class.java)
-            .beginGroup()
-                .beginGroup()
-                    .equalTo("type", "sms")
-                    .isNotEmpty("body")
-                .endGroup()
-                .or()
-                .beginGroup()
-                    .equalTo("type", "mms")
-                    .notEqualTo("messageType", 130.toLong())
-                    .isNotEmpty("parts.text")
-                .endGroup()
-            .endGroup()
-            .sort("date", Sort.ASCENDING) // parse oldest to newest to handle reactions & removals properly
-            .findAll()
+        // parse oldest to newest to handle reactions & removals properly
+        val allMessages = messageDao.getEmojiReactionCandidates().map { it.toModel() }
 
-        val max = allMessages?.count() ?: 0
+        val max = allMessages.count()
         var progress = 0
 
         allMessages.forEach { message ->
@@ -299,14 +276,12 @@ class EmojiReactionRepositoryImpl @Inject constructor(
             if (parsedReaction != null) {
                 val targetMessage = findTargetMessage(
                     message.threadId,
-                    parsedReaction.originalMessage,
-                    realm
+                    parsedReaction.originalMessage
                 )
                 saveEmojiReaction(
                     message,
                     parsedReaction,
-                    targetMessage,
-                    realm,
+                    targetMessage
                 )
                 progress++
                 // Update the progress every 25 messages, and then at completion

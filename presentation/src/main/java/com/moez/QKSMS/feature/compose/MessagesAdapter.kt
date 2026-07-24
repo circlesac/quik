@@ -73,7 +73,6 @@ import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.disposables.Disposable
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
-import io.realm.RealmResults
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -112,7 +111,7 @@ class MessagesAdapter @Inject constructor(
     val partContextMenuRegistrar: Subject<View> = PublishSubject.create()
     val reactionClicks: Subject<Long> = PublishSubject.create()
 
-    var data: Pair<Conversation, RealmResults<Message>>? = null
+    var conversationAndMessages: Pair<Conversation, List<Message>>? = null
         set(value) {
             if (field === value) return
 
@@ -126,7 +125,7 @@ class MessagesAdapter @Inject constructor(
      * Safely return the conversation, if available
      */
     private val conversation: Conversation?
-        get() = data?.first?.takeIf { it.isValid }
+        get() = conversationAndMessages?.first
 
     private val contactCache = ContactCache()
     private val expanded = HashMap<Long, Boolean>()
@@ -520,7 +519,7 @@ class MessagesAdapter @Inject constructor(
      */
     private inner class ContactCache : HashMap<String, Recipient?>() {
         override fun get(key: String): Recipient? {
-            if (super.get(key)?.isValid != true)
+            if (super.get(key) == null)
                 set(
                     key,
                     conversation?.recipients?.firstOrNull {
@@ -528,7 +527,7 @@ class MessagesAdapter @Inject constructor(
                     }
                 )
 
-            return super.get(key)?.takeIf { it.isValid }
+            return super.get(key)
         }
 
     }

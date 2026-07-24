@@ -17,7 +17,6 @@
  * along with QKSMS.  If not, see <http://www.gnu.org/licenses/>.
  */
 apply plugin: 'com.android.application'
-apply plugin: 'realm-android' // Realm needs to be before Kotlin or the build will fail
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 
@@ -167,10 +166,8 @@ dependencies {
         exclude group: "com.fasterxml.jackson.core", module: "jackson-core"
     })
 
-    // realm
-    implementation "com.github.realm:realm-android-adapters:$realm_adapters_version"
-    kapt "io.realm:realm-annotations:$realm_version"
-    kapt "io.realm:realm-annotations-processor:$realm_version"
+    // room (for DI provider of QuikDatabase in AppModule)
+    implementation "androidx.room:room-runtime:$room_version"
 
     // rxjava
     implementation "io.reactivex.rxjava2:rxandroid:$rxandroid_version"

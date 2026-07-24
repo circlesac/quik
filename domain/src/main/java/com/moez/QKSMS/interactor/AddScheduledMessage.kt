@@ -28,7 +28,6 @@ import dev.octoshrimpy.quik.repository.ScheduledMessageRepository
 import dev.octoshrimpy.quik.util.Constants
 import dev.octoshrimpy.quik.util.FileUtils
 import io.reactivex.Flowable
-import io.realm.RealmList
 import java.util.UUID
 import javax.inject.Inject
 
@@ -65,7 +64,7 @@ class AddScheduledMessage @Inject constructor(
             }
             .map { scheduledMessage ->
                 // step 2 - copy attachments to app local storage
-                scheduledMessage.attachments = RealmList(
+                scheduledMessage.attachments = mutableListOf(
                     *params.attachments.map { attachmentUri ->
                         try {
                             // get filename of input uri or use random uuid on fail to get

@@ -18,69 +18,55 @@
  */
 package dev.octoshrimpy.quik.repository
 
+import dev.octoshrimpy.quik.data.db.toEntity
+import dev.octoshrimpy.quik.data.db.toModel
+import dev.octoshrimpy.quik.data.db.dao.MessageContentFilterDao
 import dev.octoshrimpy.quik.model.MessageContentFilter
 import dev.octoshrimpy.quik.model.MessageContentFilterData
-import io.realm.Realm
-import io.realm.RealmResults
+import io.reactivex.Observable
 import javax.inject.Inject
 
-class MessageContentFilterRepositoryImpl @Inject constructor() : MessageContentFilterRepository {
+class MessageContentFilterRepositoryImpl @Inject constructor(
+    private val messageContentFilterDao: MessageContentFilterDao
+) : MessageContentFilterRepository {
     override fun createFilter(data: MessageContentFilterData) {
-        Realm.getDefaultInstance().use { realm ->
-            realm.refresh()
-            val maxId = realm.where(MessageContentFilter::class.java)
-                .max("id")?.toLong() ?: -1
-
-            realm.executeTransaction {
-                realm.insert(MessageContentFilter(maxId + 1, data.value, data.caseSensitive, data.isRegex, data.includeContacts))
-            }
-        }
+        val id = (messageContentFilterDao.maxId() ?: 0L) + 1
+        val filter = MessageContentFilter(id, data.value, data.caseSensitive, data.isRegex, data.includeContacts)
+        messageContentFilterDao.insert(filter.toEntity())
     }
 
-    override fun getMessageContentFilters(): RealmResults<MessageContentFilter> {
-        return Realm.getDefaultInstance()
-            .where(MessageContentFilter::class.java)
-            .findAllAsync()
+    override fun getMessageContentFilters(): Observable<List<MessageContentFilter>> {
+        return messageContentFilterDao.getAllFlowable()
+            .map { list -> list.map { it.toModel() } }
+            .toObservable()
     }
 
     override fun getMessageContentFilter(id: Long): MessageContentFilter? {
-        return Realm.getDefaultInstance()
-            .where(MessageContentFilter::class.java)
-            .equalTo("id", id)
-            .findFirst()
+        return messageContentFilterDao.getById(id)?.toModel()
     }
 
     override fun isBlocked(messageBody: String, address: String, contactsRepo: ContactRepository): Boolean {
         val isContact = contactsRepo.isContact(address)
 
-        return Realm.getDefaultInstance().use { realm ->
-            realm.where(MessageContentFilter::class.java)
-                .findAll()
-                .any { filter ->
-                    if (isContact && !filter.includeContacts) {
-                        false
-                    } else if (filter.isRegex) {
-                        Regex(filter.value).matches(messageBody)
-                    } else if (filter.caseSensitive) {
-                        val regexp = "[\\s\\S]*\\b" + Regex.escape(filter.value) + "\\b[\\s\\S]*"
-                        Regex(regexp).matches(messageBody)
-                    } else {
-                        val regexp = "[\\s\\S]*\\b" + Regex.escape(filter.value.lowercase()) + "\\b[\\s\\S]*"
-                        Regex(regexp).matches(messageBody.lowercase())
-                    }
+        return messageContentFilterDao.getAll()
+            .map { it.toModel() }
+            .any { filter ->
+                if (isContact && !filter.includeContacts) {
+                    false
+                } else if (filter.isRegex) {
+                    Regex(filter.value).matches(messageBody)
+                } else if (filter.caseSensitive) {
+                    val regexp = "[\\s\\S]*\\b" + Regex.escape(filter.value) + "\\b[\\s\\S]*"
+                    Regex(regexp).matches(messageBody)
+                } else {
+                    val regexp = "[\\s\\S]*\\b" + Regex.escape(filter.value.lowercase()) + "\\b[\\s\\S]*"
+                    Regex(regexp).matches(messageBody.lowercase())
                 }
-        }
+            }
     }
 
     override fun removeFilter(id: Long) {
-        Realm.getDefaultInstance().use { realm ->
-            realm.executeTransaction {
-                realm.where(MessageContentFilter::class.java)
-                    .equalTo("id", id)
-                    .findAll()
-                    .deleteAllFromRealm()
-            }
-        }
+        messageContentFilterDao.deleteById(id)
     }
 
 }

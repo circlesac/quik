@@ -18,10 +18,8 @@
  */
 package dev.octoshrimpy.quik.repository
 
-import dev.octoshrimpy.quik.model.Recipient
 import dev.octoshrimpy.quik.model.ScheduledMessage
-import io.realm.RealmList
-import io.realm.RealmResults
+import io.reactivex.Observable
 
 interface ScheduledMessageRepository {
 
@@ -46,7 +44,7 @@ interface ScheduledMessageRepository {
     /**
      * Returns all of the scheduled messages, sorted chronologically
      */
-    fun getScheduledMessages(): RealmResults<ScheduledMessage>
+    fun getScheduledMessages(): Observable<List<ScheduledMessage>>
 
     /**
      * Returns the scheduled message with the given [id]
@@ -56,7 +54,7 @@ interface ScheduledMessageRepository {
     /**
      * Returns all scheduled messages with the given [conversationId]
      */
-    fun getScheduledMessagesForConversation(conversationId: Long): RealmResults<ScheduledMessage>
+    fun getScheduledMessagesForConversation(conversationId: Long): Observable<List<ScheduledMessage>>
 
     /**
      * Deletes the scheduled message with the given [id]

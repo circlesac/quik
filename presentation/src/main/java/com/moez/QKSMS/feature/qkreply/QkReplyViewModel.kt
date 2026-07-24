@@ -26,7 +26,6 @@ import dev.octoshrimpy.quik.common.ExternalNavigator
 import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkViewModel
 import dev.octoshrimpy.quik.compat.SubscriptionManagerCompat
-import dev.octoshrimpy.quik.extensions.asObservable
 import dev.octoshrimpy.quik.extensions.mapNotNull
 import dev.octoshrimpy.quik.interactor.DeleteMessages
 import dev.octoshrimpy.quik.interactor.MarkRead
@@ -41,7 +40,6 @@ import io.reactivex.rxkotlin.withLatestFrom
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.Subject
-import io.realm.RealmResults
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Named
@@ -60,13 +58,10 @@ class QkReplyViewModel @Inject constructor(
 
     private val conversation by lazy {
         conversationRepo.getConversationAsync(threadId)
-                .asObservable()
-                .filter { it.isLoaded }
-                .filter { it.isValid }
                 .distinctUntilChanged()
     }
 
-    private val messages: Subject<RealmResults<Message>> =
+    private val messages: Subject<List<Message>> =
             BehaviorSubject.createDefault(messageRepo.getUnreadMessages(threadId))
 
     init {
@@ -80,9 +75,6 @@ class QkReplyViewModel @Inject constructor(
                     newState { copy(data = Pair(conversation, messages)) }
                     messages
                 }
-                .switchMap { messages -> messages.asObservable() }
-                .filter { it.isLoaded }
-                .filter { it.isValid }
                 .filter { it.isEmpty() }
                 .subscribe { newState { copy(hasError = true) } }
 
@@ -135,7 +127,7 @@ class QkReplyViewModel @Inject constructor(
         // Show all messages
         view.menuItemIntent
                 .filter { id -> id == R.id.expand }
-                .map { messageRepo.getMessages(threadId) }
+                .map { messageRepo.getMessagesSync(threadId) }
                 .doOnNext(messages::onNext)
                 .autoDisposable(view.scope())
                 .subscribe { newState { copy(expanded = true) } }

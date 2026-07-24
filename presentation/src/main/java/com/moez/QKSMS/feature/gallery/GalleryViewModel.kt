@@ -31,6 +31,7 @@ import dev.octoshrimpy.quik.interactor.SaveImage
 import dev.octoshrimpy.quik.manager.PermissionManager
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
+import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.rxkotlin.plusAssign
 import javax.inject.Inject
@@ -49,12 +50,15 @@ class GalleryViewModel @Inject constructor(
         disposables += Flowable.just(partId)
                 .mapNotNull(messageRepo::getMessageForPart)
                 .mapNotNull { message -> message.threadId }
-                .doOnNext { threadId -> newState { copy(parts = messageRepo.getPartsForConversation(threadId)) } }
                 .doOnNext { threadId ->
                     newState {
                         copy(title = conversationRepo.getConversation(threadId)?.getTitle())
                     }
                 }
+                .switchMap { threadId ->
+                    messageRepo.getPartsForConversation(threadId).toFlowable(BackpressureStrategy.LATEST)
+                }
+                .doOnNext { parts -> newState { copy(parts = parts) } }
                 .subscribe()
     }
 

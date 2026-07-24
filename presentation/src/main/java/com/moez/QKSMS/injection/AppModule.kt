@@ -24,7 +24,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
 import androidx.lifecycle.ViewModelProvider
+import androidx.room.Room
 import androidx.work.WorkerFactory
+import dev.octoshrimpy.quik.data.db.QuikDatabase
 import com.f2prateek.rx.preferences2.RxSharedPreferences
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -194,6 +196,24 @@ class AppModule(private var application: Application) {
 
     @Provides
     fun provideCursorToRecipient(mapper: CursorToRecipientImpl): CursorToRecipient = mapper
+
+    // Database
+
+    @Provides
+    @Singleton
+    fun provideQuikDatabase(context: Context): QuikDatabase =
+        Room.databaseBuilder(context, QuikDatabase::class.java, QuikDatabase.NAME)
+            .allowMainThreadQueries()
+            .build()
+
+    @Provides fun provideMessageDao(db: QuikDatabase) = db.messageDao()
+    @Provides fun provideConversationDao(db: QuikDatabase) = db.conversationDao()
+    @Provides fun provideContactDao(db: QuikDatabase) = db.contactDao()
+    @Provides fun provideBlockedNumberDao(db: QuikDatabase) = db.blockedNumberDao()
+    @Provides fun provideMessageContentFilterDao(db: QuikDatabase) = db.messageContentFilterDao()
+    @Provides fun provideScheduledMessageDao(db: QuikDatabase) = db.scheduledMessageDao()
+    @Provides fun provideEmojiReactionDao(db: QuikDatabase) = db.emojiReactionDao()
+    @Provides fun provideSyncDao(db: QuikDatabase) = db.syncDao()
 
     // Repository
 

@@ -43,8 +43,7 @@ import dev.octoshrimpy.quik.manager.BillingManager
 import dev.octoshrimpy.quik.manager.ChangelogManager
 import dev.octoshrimpy.quik.manager.PermissionManager
 import dev.octoshrimpy.quik.manager.RatingManager
-import dev.octoshrimpy.quik.model.EmojiSyncNeeded
-import dev.octoshrimpy.quik.model.SyncLog
+import dev.octoshrimpy.quik.data.db.dao.SyncDao
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.EmojiReactionRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
@@ -52,9 +51,9 @@ import dev.octoshrimpy.quik.repository.ScheduledMessageRepository
 import dev.octoshrimpy.quik.repository.SyncRepository
 import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.plusAssign
 import io.reactivex.schedulers.Schedulers
-import io.realm.Realm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -87,13 +86,35 @@ class MainViewModel @Inject constructor(
     private val ratingManager: RatingManager,
     private val reactions: EmojiReactionRepository,
     private val syncContacts: SyncContacts,
+    private val syncDao: SyncDao,
     private val syncMessages: SyncMessages
 ) : QkViewModel<MainView, MainState>(
-    MainState(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())))
+    MainState(page = Inbox())
 ) {
     private var lastArchivedThreadIds = listOf<Long>(0)
 
+    // Live subscription that pushes conversation list emissions into the active page's data
+    private var conversationsDisposable: Disposable? = null
+
+    private fun observeConversations(archived: Boolean) {
+        conversationsDisposable?.let { disposables.remove(it) }
+        conversationsDisposable = conversationRepo.getConversations(prefs.unreadAtTop.get(), archived)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { conversations ->
+                newState {
+                    copy(page = when (val currentPage = page) {
+                        is Inbox -> currentPage.copy(data = conversations)
+                        is Archived -> currentPage.copy(data = conversations)
+                        else -> currentPage
+                    })
+                }
+            }
+        conversationsDisposable?.let { disposables += it }
+    }
+
     init {
+        observeConversations(false)
+
         disposables += deleteConversations
         disposables += markAllSeen
         disposables += markArchived
@@ -118,7 +139,6 @@ class MainViewModel @Inject constructor(
 
         // Fetch scheduled messages and assign it to hasScheduledMessage
         disposables += scheduledMessageRepo.getScheduledMessages()
-            .asFlowable()
             .map { messages ->
                 messages.map { it.conversationId }.toSet()
             }
@@ -132,17 +152,16 @@ class MainViewModel @Inject constructor(
 
         // If we have all permissions and we've never run a sync, run a sync. This will be the case
         // when upgrading from 2.7.3, or if the app's data was cleared
-        val lastSync = Realm.getDefaultInstance().use { realm -> realm.where(SyncLog::class.java)?.max("date") ?: 0 }
-        if (lastSync == 0 && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
+        val lastSync = syncDao.getLastSyncDate() ?: 0L
+        if (lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
             syncMessages.execute(Unit)
         }
 
         // This is only used when we update to a version that newly supports emoji reactions
-        Realm.getDefaultInstance().executeTransactionAsync { realm ->
-            val emojiSyncNeeded = realm.where(EmojiSyncNeeded::class.java).findFirst()
-            if (emojiSyncNeeded != null) {
-                reactions.deleteAndReparseAllEmojiReactions(realm) { /* No progress ui needed here */ }
-                emojiSyncNeeded.deleteFromRealm()
+        Schedulers.io().scheduleDirect {
+            if (syncDao.getEmojiSyncNeeded() != null) {
+                reactions.deleteAndReparseAllEmojiReactions { /* No progress ui needed here */ }
+                syncDao.deleteAllEmojiSyncNeeded()
             }
         }
 
@@ -173,14 +192,13 @@ class MainViewModel @Inject constructor(
             .debounce(400, TimeUnit.MILLISECONDS)
             .observeOn(AndroidSchedulers.mainThread())
             .withLatestFrom(state) { _, state ->
-                if (state.page is Inbox)
-                    newState {
-                        copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())))
-                    }
-                else if (state.page is Archived)
-                    newState {
-                        copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get(), true)))
-                    }
+                if (state.page is Inbox) {
+                    newState { copy(page = Inbox()) }
+                    observeConversations(false)
+                } else if (state.page is Archived) {
+                    newState { copy(page = Inbox()) }
+                    observeConversations(true)
+                }
             }
             .autoDisposable(view.scope())
             .subscribe()
@@ -271,7 +289,8 @@ class MainViewModel @Inject constructor(
                 .map { query -> query.trim() }
                 .withLatestFrom(state) { query, state ->
                     if (query.isEmpty() && state.page is Searching) {
-                        newState { copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get()))) }
+                        newState { copy(page = Inbox()) }
+                        observeConversations(false)
                     }
                     query
                 }
@@ -337,7 +356,8 @@ class MainViewModel @Inject constructor(
                             state.page is Inbox && state.page.selected > 0 -> view.clearSelection()
                             state.page is Archived && state.page.selected > 0 -> view.clearSelection()
                             state.page !is Inbox -> {
-                                newState { copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get()))) }
+                                newState { copy(page = Inbox()) }
+                                observeConversations(false)
                             }
                             else -> newState { copy(hasError = true) }
                         }
@@ -357,8 +377,14 @@ class MainViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .doOnNext { drawerItem ->
                     when (drawerItem) {
-                        NavItem.INBOX -> newState { copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get()))) }
-                        NavItem.ARCHIVED -> newState { copy(page = Archived(data = conversationRepo.getConversations(prefs.unreadAtTop.get(), true))) }
+                        NavItem.INBOX -> {
+                            newState { copy(page = Inbox()) }
+                            observeConversations(false)
+                        }
+                        NavItem.ARCHIVED -> {
+                            newState { copy(page = Archived()) }
+                            observeConversations(true)
+                        }
                         else -> Unit
                     }
                 }
