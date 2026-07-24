@@ -129,9 +129,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Compute version (oneup CalVer)
-        # TODO: switch to a tagged/released oneup once circlesac/oneup#4 is merged
+        # gradle + git-tag support is on oneup main (circlesac/oneup#4).
+        # TODO: switch to `npm i -g @circlesac/oneup` (prebuilt, faster) once a release with gradle support is published.
         run: |
-          cargo install --git https://github.com/circlesac/oneup --branch feat/gradle-go-support --locked oneup || cargo install --git https://github.com/circlesac/oneup --branch feat/gradle-go-support oneup
+          cargo install --git https://github.com/circlesac/oneup --locked oneup || cargo install --git https://github.com/circlesac/oneup oneup
           oneup version --target presentation/build.gradle --format YY.MM.MICRO --verbose
 
       - name: Capture version metadata
