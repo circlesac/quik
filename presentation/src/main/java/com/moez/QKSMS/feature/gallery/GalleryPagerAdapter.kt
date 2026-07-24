@@ -136,4 +136,6 @@ class GalleryPagerAdapter @Inject constructor(private val context: Context) : Qk
         exoPlayers.forEach { exoPlayer -> exoPlayer?.release() }
     }
 
+    override fun areItemsTheSame(old: MmsPart, new: MmsPart) = old.id == new.id
+
 }

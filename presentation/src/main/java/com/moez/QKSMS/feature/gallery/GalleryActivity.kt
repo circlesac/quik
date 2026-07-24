@@ -73,7 +73,7 @@ class GalleryActivity : QkActivity(), GalleryView {
         })
 
         pagerAdapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
-            override fun onChanged() {
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
                 pagerAdapter.data?.takeIf { pagerAdapter.itemCount > 0 }
                         ?.indexOfFirst { part -> part.id == partId }
                         ?.let { index ->

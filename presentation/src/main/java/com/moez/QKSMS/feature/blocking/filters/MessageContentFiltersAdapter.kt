@@ -51,4 +51,6 @@ class MessageContentFiltersAdapter : QkRealmAdapter<MessageContentFilter, QkBind
         holder.binding.filter.text = item.value
     }
 
+    override fun areItemsTheSame(old: MessageContentFilter, new: MessageContentFilter) = old.id == new.id
+
 }

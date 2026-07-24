@@ -35,7 +35,6 @@ import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
-import androidx.recyclerview.widget.RecyclerView
 import com.jakewharton.rxbinding2.view.clicks
 import com.jakewharton.rxbinding2.widget.textChanges
 import dagger.android.AndroidInjection
@@ -102,9 +101,6 @@ class QkReplyActivity : QkThemedActivity(), QkReplyView {
 
         binding.messages.adapter = adapter
         binding.messages.adapter?.autoScrollToStart(binding.messages)
-        binding.messages.adapter?.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
-            override fun onChanged() = binding.messages.scrollToPosition(adapter.itemCount - 1)
-        })
 
         binding.message.setOnTouchListener(object : OnTouchListener {
             private val gestureDetector =

@@ -48,4 +48,6 @@ class BlockedNumbersAdapter : QkRealmAdapter<BlockedNumber, QkBindingViewHolder<
         holder.binding.number.text = item.address
     }
 
+    override fun areItemsTheSame(old: BlockedNumber, new: BlockedNumber) = old.id == new.id
+
 }

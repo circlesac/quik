@@ -99,6 +99,8 @@ class ScheduledMessageAdapter @Inject constructor(
         return getItem(position)?.id ?: -1
     }
 
+    override fun areItemsTheSame(old: ScheduledMessage, new: ScheduledMessage) = old.id == new.id
+
     /**
      * Cache the contacts in a map by the address, because the messages we're binding don't have
      * a reference to the contact.

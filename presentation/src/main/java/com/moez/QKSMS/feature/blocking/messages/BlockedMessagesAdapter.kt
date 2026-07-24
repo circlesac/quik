@@ -94,4 +94,6 @@ class BlockedMessagesAdapter @Inject constructor(
         return if (conversation?.unread == false) 1 else 0
     }
 
+    override fun areItemsTheSame(old: Conversation, new: Conversation) = old.id == new.id
+
 }
