@@ -59,3 +59,5 @@ keystore.p12
 config.yml
 *.jks
 
+/repo/
+/tmp/
