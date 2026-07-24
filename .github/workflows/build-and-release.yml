@@ -176,6 +176,8 @@ jobs:
   publish:
     needs: [build, generate_release_notes]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Sanitize release notes
