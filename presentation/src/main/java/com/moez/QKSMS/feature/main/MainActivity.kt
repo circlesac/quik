@@ -427,7 +427,7 @@ class MainActivity : QkThemedActivity(), MainView {
         }
 
     override fun requestDefaultSms() =
-        externalNavigator.showDefaultSmsDialog(this)
+        externalNavigator.showDefaultSmsSettings(this)
 
     override fun requestPermissions() {
         val permissions = mutableListOf(

@@ -125,7 +125,7 @@ class ConversationInfoController(
     }
 
     override fun requestDefaultSms() {
-        externalNavigator.showDefaultSmsDialog(activity!!)
+        externalNavigator.showDefaultSmsSettings(activity!!)
     }
 
     override fun showDeleteDialog() {

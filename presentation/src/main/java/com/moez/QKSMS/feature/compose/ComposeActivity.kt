@@ -555,7 +555,7 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     }
 
     override fun requestDefaultSms() {
-        externalNavigator.showDefaultSmsDialog(this)
+        externalNavigator.showDefaultSmsSettings(this)
     }
 
     override fun requestStoragePermission() {

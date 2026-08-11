@@ -149,12 +149,18 @@ class ExternalNavigator @Inject constructor(
         startActivityExternal(intent)
     }
 
-    // This must use startActivityForResult
-    fun showDefaultSmsDialog(context: Activity) {
+    fun showDefaultSmsSettings(context: Activity) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val roleManager = context.getSystemService(RoleManager::class.java) as RoleManager
-            val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
-            context.startActivityForResult(intent, 42389)
+            val defaultAppsIntent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+            if (defaultAppsIntent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(defaultAppsIntent)
+            } else {
+                val roleManager = context.getSystemService(RoleManager::class.java) as RoleManager
+                val roleIntent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
+                if (roleIntent.resolveActivity(context.packageManager) != null) {
+                    context.startActivityForResult(roleIntent, 42389)
+                }
+            }
         } else {
             val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
             intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, context.packageName)
