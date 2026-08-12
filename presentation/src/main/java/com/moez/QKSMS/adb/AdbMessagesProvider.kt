@@ -18,6 +18,7 @@
  */
 package dev.octoshrimpy.quik.adb
 
+import android.app.role.RoleManager
 import android.content.ContentProvider
 import android.content.ContentUris
 import android.content.ContentValues
@@ -26,11 +27,14 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.os.Binder
+import android.os.Build
 import android.os.Process
+import android.provider.Telephony.Sms
 import dev.octoshrimpy.quik.injection.appComponent
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
 import timber.log.Timber
+import java.security.MessageDigest
 import javax.inject.Inject
 
 /**
@@ -51,9 +55,9 @@ import javax.inject.Inject
  *   adb shell content insert --uri content://dev.octoshrimpy.quik.adb/messages \
  *       --bind address:s:+821012345678 --bind body:s:"hello from adb"
  *
- *   # delete (single id, or a set via --where "id IN (1,2,3)")
- *   adb shell content delete --uri content://dev.octoshrimpy.quik.adb/messages/137
- *   adb shell content delete --uri content://dev.octoshrimpy.quik.adb/messages --where "id IN (1,2,3)"
+ *   # delete one unchanged system SMS by content id and Binder fingerprint
+ *   adb shell content delete --uri content://dev.octoshrimpy.quik.adb/sms/137 \
+ *       --where "fingerprint=<full SHA-256>"
  *
  *   # mark read/unread, or archive/unarchive the message's thread (either or both binds)
  *   adb shell content update --uri content://dev.octoshrimpy.quik.adb/messages/137 --bind read:i:1
@@ -86,6 +90,7 @@ class AdbMessagesProvider : ContentProvider() {
         UriMatcher(UriMatcher.NO_MATCH).apply {
             addURI(authority, "messages", MESSAGES)
             addURI(authority, "messages/#", MESSAGE_ID)
+            addURI(authority, "sms/#", SMS_ID)
             addURI(authority, "conversations", CONVERSATIONS)
         }
     }
@@ -213,22 +218,43 @@ class AdbMessagesProvider : ContentProvider() {
         ensureReady()
         enforceCaller()
 
-        val ids = when (matcher.match(uri)) {
-            MESSAGE_ID -> listOf(ContentUris.parseId(uri))
-            MESSAGES -> parseIdsFromSelection(selection)
-            else -> throw IllegalArgumentException("Unsupported delete uri: $uri")
+        require(matcher.match(uri) == SMS_ID) {
+            "delete only supports one guarded system SMS at /sms/{contentId}"
         }
-        if (ids.isEmpty()) return 0
+        require(uri.query == null) { "delete query parameters are not supported" }
+        val contentId = ContentUris.parseId(uri)
+        require(contentId > 0) { "SMS content id must be positive" }
+        val expectedFingerprint = SmsDeleteGuard.parseFingerprint(selection, selectionArgs)
 
-        // Look up affected threads before deleting so we can refresh those conversations after.
-        val threadIds = ids.mapNotNull { messageRepo.getUnmanagedMessage(it)?.threadId }.distinct()
+        val appContext = requireNotNull(context)
+        check(isDefaultSmsApp()) {
+            "QUIK must be the default SMS app before deletion"
+        }
 
-        // deleteMessages removes from both the local store and the system SMS provider (contentResolver.delete).
-        messageRepo.deleteMessages(ids)
-        conversationRepo.updateConversations(threadIds)
+        val live = readSystemSms(contentId) ?: return 0
+        if (!MessageDigest.isEqual(
+                SmsDeleteGuard.fingerprint(live).toByteArray(Charsets.US_ASCII),
+                expectedFingerprint.toByteArray(Charsets.US_ASCII)
+            )) {
+            throw SecurityException("SMS changed since it was read")
+        }
 
-        Timber.v("adb bridge: deleted ${ids.size} message(s) across ${threadIds.size} thread(s)")
-        return ids.size
+        val threadId = live.threadId ?: return 0
+        val local = messageRepo.getMessagesSync(threadId)
+            .singleOrNull { message -> message.isSms() && message.contentId == contentId }
+            ?: return 0
+
+        val systemUri = ContentUris.withAppendedId(Sms.CONTENT_URI, contentId)
+        if (appContext.contentResolver.delete(systemUri, null, null) != 1) return 0
+
+        messageRepo.deleteMessages(listOf(local.id))
+        conversationRepo.updateConversations(listOf(threadId))
+
+        check(readSystemSms(contentId) == null && messageRepo.getMessage(local.id) == null) {
+            "SMS deletion could not be verified"
+        }
+        Timber.v("adb bridge: deleted one guarded SMS")
+        return 1
     }
 
     override fun update(
@@ -265,8 +291,49 @@ class AdbMessagesProvider : ContentProvider() {
 
     override fun getType(uri: Uri): String? = when (matcher.match(uri)) {
         MESSAGES, CONVERSATIONS -> "vnd.android.cursor.dir/vnd.$authority.item"
-        MESSAGE_ID -> "vnd.android.cursor.item/vnd.$authority.item"
+        MESSAGE_ID, SMS_ID -> "vnd.android.cursor.item/vnd.$authority.item"
         else -> null
+    }
+
+    private fun readSystemSms(contentId: Long): SmsFingerprintRecord? {
+        val cursor = requireNotNull(context).contentResolver.query(
+            ContentUris.withAppendedId(Sms.CONTENT_URI, contentId),
+            SMS_FINGERPRINT_COLUMNS,
+            null,
+            null,
+            null
+        ) ?: return null
+
+        cursor.use {
+            if (!it.moveToFirst()) return null
+            val record = SmsFingerprintRecord(
+                id = it.nullableLong(Sms._ID),
+                address = it.getString(it.getColumnIndexOrThrow(Sms.ADDRESS)) ?: "",
+                body = it.getString(it.getColumnIndexOrThrow(Sms.BODY)) ?: "",
+                date = it.nullableLong(Sms.DATE),
+                dateSent = it.nullableLong(Sms.DATE_SENT),
+                read = it.nullableLong(Sms.READ),
+                status = it.nullableLong(Sms.STATUS),
+                threadId = it.nullableLong(Sms.THREAD_ID),
+                type = it.nullableLong(Sms.TYPE)
+            )
+            check(!it.moveToNext()) { "system SMS id matched more than one row" }
+            return record
+        }
+    }
+
+    private fun isDefaultSmsApp(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val appContext = requireNotNull(context)
+        appContext.getSystemService(RoleManager::class.java)
+            ?.isRoleHeld(RoleManager.ROLE_SMS) == true
+    } else {
+        val appContext = requireNotNull(context)
+        Sms.getDefaultSmsPackage(appContext) == appContext.packageName
+    }
+
+    private fun Cursor.nullableLong(column: String): Long? {
+        val index = getColumnIndexOrThrow(column)
+        return if (isNull(index)) null else getLong(index)
     }
 
     /** Pull the numeric ids out of a `where` clause like `id IN (1, 2, 3)` or `id = 5`. */
@@ -277,6 +344,7 @@ class AdbMessagesProvider : ContentProvider() {
         private const val MESSAGES = 1
         private const val MESSAGE_ID = 2
         private const val CONVERSATIONS = 3
+        private const val SMS_ID = 4
 
         private val MESSAGE_COLUMNS = arrayOf(
             "_id", "id", "threadId", "contentId", "address", "body",
@@ -285,6 +353,11 @@ class AdbMessagesProvider : ContentProvider() {
 
         private val CONVERSATION_COLUMNS = arrayOf(
             "_id", "id", "title", "addresses", "snippet", "date", "unread", "pinned", "blocked"
+        )
+
+        private val SMS_FINGERPRINT_COLUMNS = arrayOf(
+            Sms._ID, Sms.THREAD_ID, Sms.ADDRESS, Sms.DATE, Sms.DATE_SENT,
+            Sms.TYPE, Sms.READ, Sms.STATUS, Sms.BODY
         )
     }
 
