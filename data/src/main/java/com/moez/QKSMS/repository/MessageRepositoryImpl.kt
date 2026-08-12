@@ -280,6 +280,28 @@ open class MessageRepositoryImpl @Inject constructor(
             }
             ?: 0
 
+    override fun setLocked(messageId: Long, locked: Boolean): Boolean {
+        val message = getMessage(messageId) ?: return false
+        val uri = message.getUri()
+
+        if (uri != Uri.EMPTY) {
+            val column = if (message.isMms()) Mms.LOCKED else Sms.LOCKED
+            val updated = tryOrNull(true) {
+                context.contentResolver.update(
+                    uri,
+                    contentValuesOf(column to locked),
+                    null,
+                    null
+                )
+            } ?: return false
+
+            if (updated == 0) return false
+        }
+
+        messageDao.setLocked(messageId, locked)
+        return true
+    }
+
     private fun syncProviderMessage(uri: Uri, sendAsGroup: Boolean): Message? {
         // if uri doesn't have valid type
         val type = when {

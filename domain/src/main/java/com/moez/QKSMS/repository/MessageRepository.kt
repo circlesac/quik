@@ -73,6 +73,8 @@ interface MessageRepository {
 
     fun markUnread(threadIds: Collection<Long>): Int
 
+    fun setLocked(messageId: Long, locked: Boolean): Boolean
+
     fun markSending(messageId: Long)
 
     fun markSent(messageId: Long)

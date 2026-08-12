@@ -196,6 +196,7 @@ class MessagesAdapter @Inject constructor(
                 }
                 true
             }
+            body.setOnLongClickListener { view.performLongClick() }
         }
     }
 
@@ -483,7 +484,7 @@ class MessagesAdapter @Inject constructor(
         next: Message?
     ) {
         statusView.apply {
-            text = when {
+            val status = when {
                 message.isSending() -> context.getString(R.string.message_status_sending)
                 message.isDelivered() -> context.getString(
                     R.string.message_status_delivered,
@@ -497,6 +498,11 @@ class MessagesAdapter @Inject constructor(
                         dateFormatter.getTimestamp(message.date)}"
                 else -> dateFormatter.getTimestamp(message.date)
             }
+            text = if (message.locked) {
+                context.getString(R.string.message_status_pinned, status)
+            } else {
+                status
+            }
 
             val age = TimeUnit.MILLISECONDS.toMinutes(
                 System.currentTimeMillis() - message.date
@@ -504,6 +510,7 @@ class MessagesAdapter @Inject constructor(
 
             setVisible(
                 when {
+                    message.locked -> true
                     expanded[message.id] == true -> true
                     message.isSending() -> true
                     message.isFailedMessage() -> true

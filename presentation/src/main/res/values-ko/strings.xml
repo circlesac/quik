@@ -97,7 +97,10 @@
     <string name="compose_scheduled_plus">메시지 예약 전송 기능을 사용하려면 QUIK+를 구입해야 합니다</string>
     <string name="compose_scheduled_toast">예약된 메시지에 저장됨</string>
     <string name="compose_hint">메시지 작성 중...</string>
+    <string name="compose_menu_reply">답장</string>
     <string name="compose_menu_copy">문자 복사하기</string>
+    <string name="compose_menu_pin">메시지 고정</string>
+    <string name="compose_menu_unpin">메시지 고정 해제</string>
     <string name="compose_menu_forward">전달</string>
     <string name="compose_menu_delete">삭제</string>
     <string name="compose_menu_previous">이전</string>
@@ -125,6 +128,7 @@
     <string name="compose_sim_cd">%s 선택됨, SIM 카드를 변경하세요.</string>
     <string name="compose_send_cd">메시지 보내기</string>
     <string name="message_status_sending">전송 중...</string>
+    <string name="message_status_pinned">📌 %1$s</string>
     <string name="message_status_delivered">%s 전송됨</string>
     <string name="message_status_failed">전송 실패, 눌러서 다시 시도하세요</string>
     <string name="info_title">자세히</string>

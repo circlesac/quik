@@ -154,6 +154,9 @@ interface MessageDao {
     @Query("UPDATE message SET date = :date WHERE id = :id")
     fun updateDate(id: Long, date: Long)
 
+    @Query("UPDATE message SET locked = :locked WHERE id = :id")
+    fun setLocked(id: Long, locked: Boolean)
+
     @Query("UPDATE message SET isEmojiReaction = :value WHERE id = :id")
     fun setIsEmojiReaction(id: Long, value: Boolean)
 

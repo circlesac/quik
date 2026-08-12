@@ -415,6 +415,23 @@ class ComposeViewModel @Inject constructor(
                 .autoDisposable(view.scope())
                 .subscribe { view.clearSelection() }
 
+        // Reply to one message by quoting it in the SMS/MMS draft
+        view.optionsItemIntent
+            .filter { it == R.id.reply }
+            .withLatestFrom(view.messagesSelectedIntent) { _, messageIds -> messageIds.singleOrNull() }
+            .mapNotNull { it }
+            .mapNotNull(messageRepo::getMessage)
+            .withLatestFrom(view.textChangedIntent) { message, draft ->
+                ReplyQuoteFormatter.format(message.getSummary(), draft)
+            }
+            .autoDisposable(view.scope())
+            .subscribe { draft ->
+                view.setDraft(draft)
+                view.clearSelection()
+                view.focusMessage()
+                view.showKeyboard()
+            }
+
         // share the message text contents
         view.optionsItemIntent
             .filter { it == R.id.share }
@@ -513,6 +530,39 @@ class ComposeViewModel @Inject constructor(
             }
             .autoDisposable(view.scope())
             .subscribe { view.clearSelection() }
+
+        // Pin or unpin one message. Message.locked is persisted by Android's SMS/MMS provider.
+        view.optionsItemIntent
+            .filter { it == R.id.pin_message }
+            .map { true }
+            .mergeWith(
+                view.optionsItemIntent
+                    .filter { it == R.id.unpin_message }
+                    .map { false }
+            )
+            .withLatestFrom(view.messagesSelectedIntent) { locked, messageIds ->
+                messageIds.singleOrNull()?.let { messageId -> locked to messageId }
+            }
+            .mapNotNull { it }
+            .filter { permissionManager.isDefaultSms().also { isDefault ->
+                if (!isDefault) view.requestDefaultSms()
+            } }
+            .observeOn(Schedulers.io())
+            .map { (locked, messageId) ->
+                Triple(messageRepo.setLocked(messageId, locked), locked, messageId)
+            }
+            .observeOn(AndroidSchedulers.mainThread())
+            .filter { it.first }
+            .autoDisposable(view.scope())
+            .subscribe { (_, locked, messageId) ->
+                newState {
+                    messages?.second
+                        ?.firstOrNull { it.id == messageId }
+                        ?.locked = locked
+                    copy(messages = messages?.let { it.first to it.second })
+                }
+                view.clearSelection()
+            }
 
         // expand message to show additional info
         view.optionsItemIntent
@@ -652,11 +702,11 @@ class ComposeViewModel @Inject constructor(
         // Update the State when the message selected count changes
         view.messagesSelectedIntent
                 .map { selectedMessageIds ->
-                    Pair(
+                    val selectedMessages = selectedMessageIds.mapNotNull(messageRepo::getMessage)
+                    Triple(
                         selectedMessageIds.size,
-                        selectedMessageIds.any {
-                            messageRepo.getMessage(it)?.hasNonWhitespaceText() ?: false
-                        }
+                        selectedMessages.any(Message::hasNonWhitespaceText),
+                        selectedMessages.singleOrNull()?.locked == true
                     )
                 }
                 .autoDisposable(view.scope())
@@ -665,6 +715,7 @@ class ComposeViewModel @Inject constructor(
                         copy(
                             selectedMessages = it.first,
                             selectedMessagesHaveText = it.second,
+                            selectedMessageLocked = it.third,
                             editingMode = false
                         )
                     }
