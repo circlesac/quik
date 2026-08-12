@@ -34,7 +34,9 @@ import android.text.style.ClickableSpan
 import android.text.style.StyleSpan
 import android.text.style.URLSpan
 import android.text.util.Linkify
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -153,14 +155,12 @@ class MessagesAdapter @Inject constructor(
         val view: View
         val body: TextView
         val parts: View
-        val status: View
 
         if (viewType == VIEW_TYPE_MESSAGE_OUT) {
             val binding = MessageListItemOutBinding.inflate(inflater, parent, false)
             view = binding.root
             body = binding.body
             parts = binding.parts
-            status = binding.status
             binding.cancelIcon.setTint(theme.theme)
             binding.cancel.setTint(theme.theme)
             binding.sendNowIcon.setTint(theme.theme)
@@ -170,7 +170,6 @@ class MessagesAdapter @Inject constructor(
             view = binding.root
             body = binding.body
             parts = binding.parts
-            status = binding.status
         }
 
         body.hyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE
@@ -179,18 +178,7 @@ class MessagesAdapter @Inject constructor(
         partContextMenuRegistrar.onNext(parts)
 
         return QkViewHolder(view).apply {
-            view.setOnClickListener {
-                getItem(adapterPosition)?.let {
-                    when (toggleSelection(it.id, false)) {
-                        true -> view.isActivated = isSelected(it.id)
-                        false -> {
-                            expanded[it.id] = status.visibility != View.VISIBLE
-                            notifyItemChanged(adapterPosition)
-                        }
-                    }
-                }
-            }
-            view.setOnLongClickListener {
+            val showMessageActions = {
                 getItem(adapterPosition)?.let {
                     messageLongClicks.onNext(
                         MessageActionTarget(
@@ -201,10 +189,63 @@ class MessagesAdapter @Inject constructor(
                         )
                     )
                 }
+            }
+
+            val handleMessageClick = {
+                getItem(adapterPosition)?.let {
+                    when (toggleSelection(it.id, false)) {
+                        true -> view.isActivated = isSelected(it.id)
+                        false -> showMessageActions()
+                    }
+                }
+            }
+            view.setOnClickListener { handleMessageClick() }
+            view.setOnLongClickListener {
+                showMessageActions()
                 true
+            }
+            val bodyGestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDown(event: MotionEvent) = true
+
+                override fun onSingleTapUp(event: MotionEvent): Boolean {
+                    handleMessageClick()
+                    return true
+                }
+
+                override fun onLongPress(event: MotionEvent) {
+                    view.performLongClick()
+                }
+            })
+            var touchingLink = false
+            body.setOnTouchListener { _, event ->
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                    touchingLink = body.hasClickableSpanAt(event)
+                }
+
+                val handled = !touchingLink
+                if (handled) bodyGestures.onTouchEvent(event)
+                if (event.actionMasked == MotionEvent.ACTION_UP ||
+                    event.actionMasked == MotionEvent.ACTION_CANCEL
+                ) touchingLink = false
+
+                handled
             }
             body.setOnLongClickListener { view.performLongClick() }
         }
+    }
+
+    private fun TextView.hasClickableSpanAt(event: MotionEvent): Boolean {
+        val text = text as? Spanned ?: return false
+        val layout = layout ?: return false
+        val x = (event.x - totalPaddingLeft + scrollX).toInt()
+        val y = (event.y - totalPaddingTop + scrollY).toInt()
+        if (x < 0 || y < 0 || y > layout.height) return false
+
+        val line = layout.getLineForVertical(y)
+        if (x < layout.getLineLeft(line) || x > layout.getLineRight(line)) return false
+
+        val offset = layout.getOffsetForHorizontal(line, x.toFloat())
+        return text.getSpans(offset, offset, ClickableSpan::class.java).isNotEmpty()
     }
 
     fun selectMessage(messageId: Long) {
