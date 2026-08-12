@@ -43,6 +43,7 @@ import android.view.View
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.PopupMenu
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.app.ActivityCompat
@@ -138,6 +139,7 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     override val messagePartClickIntent: Subject<Long> by lazy { messageAdapter.partClicks }
     override val messagePartContextMenuRegistrar: Subject<View> by lazy { messageAdapter.partContextMenuRegistrar }
     override val messagesSelectedIntent by lazy { messageAdapter.selectionChanges }
+    override val messageActionIntent: Subject<Pair<Int, Long>> = PublishSubject.create()
     override val cancelDelayedIntent: Subject<Long> by lazy { messageAdapter.cancelSendingClicks }
     override val sendDelayedNowIntent: Subject<Long> by lazy { messageAdapter.sendNowClicks }
     override val resendIntent: Subject<Long> by lazy { messageAdapter.resendClicks }
@@ -230,6 +232,10 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
 
             binding.messageList.setHasFixedSize(true)
             binding.messageList.adapter = messageAdapter
+
+            messageAdapter.messageLongClicks
+                .autoDisposable(scope())
+                .subscribe(::showMessageActions)
 
             binding.messageAttachments.adapter = composeAttachmentAdapter
 
@@ -529,6 +535,37 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
 
     override fun toggleSelectAll() {
         messageAdapter.toggleSelectAll()
+    }
+
+    override fun selectMessage(messageId: Long) = messageAdapter.selectMessage(messageId)
+
+    private fun showMessageActions(target: MessageActionTarget) {
+        val visibleBounds = Rect()
+        if (!target.anchor.getGlobalVisibleRect(visibleBounds)) return
+
+        val contentLocation = IntArray(2).also(binding.contentView::getLocationOnScreen)
+        val popupAnchor = View(this).apply {
+            x = (visibleBounds.centerX() - contentLocation[0]).toFloat()
+            y = (visibleBounds.centerY() - contentLocation[1]).toFloat()
+        }
+        binding.contentView.addView(popupAnchor, ConstraintLayout.LayoutParams(1, 1))
+
+        PopupMenu(this, popupAnchor).apply {
+            menuInflater.inflate(R.menu.message_actions, menu)
+            menu.findItem(R.id.copy).isVisible = target.hasText
+            menu.findItem(R.id.pin_message).isVisible = !target.locked
+            menu.findItem(R.id.unpin_message).isVisible = target.locked
+            setOnMenuItemClickListener { item ->
+                if (item.itemId == R.id.select_message) {
+                    selectMessage(target.messageId)
+                } else {
+                    messageActionIntent.onNext(item.itemId to target.messageId)
+                }
+                true
+            }
+            setOnDismissListener { binding.contentView.removeView(popupAnchor) }
+            popupAnchor.post(::show)
+        }
     }
 
     override fun expandMessages(messageIds: List<Long>, expand: Boolean) {

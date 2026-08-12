@@ -112,6 +112,7 @@ class MessagesAdapter @Inject constructor(
     val resendClicks: Subject<Long> = PublishSubject.create()
     val partContextMenuRegistrar: Subject<View> = PublishSubject.create()
     val reactionClicks: Subject<Long> = PublishSubject.create()
+    val messageLongClicks: Subject<MessageActionTarget> = PublishSubject.create()
 
     var conversationAndMessages: Pair<Conversation, List<Message>>? = null
         set(value) {
@@ -191,12 +192,27 @@ class MessagesAdapter @Inject constructor(
             }
             view.setOnLongClickListener {
                 getItem(adapterPosition)?.let {
-                    toggleSelection(it.id)
-                    view.isActivated = isSelected(it.id)
+                    messageLongClicks.onNext(
+                        MessageActionTarget(
+                            body.takeIf { it.visibility == View.VISIBLE } ?: parts,
+                            it.id,
+                            it.hasNonWhitespaceText(),
+                            it.locked,
+                        )
+                    )
                 }
                 true
             }
             body.setOnLongClickListener { view.performLongClick() }
+        }
+    }
+
+    fun selectMessage(messageId: Long) {
+        if (!isSelected(messageId)) {
+            toggleSelection(messageId)
+            data.indexOfFirst { it.id == messageId }
+                .takeIf { it >= 0 }
+                ?.let(::notifyItemChanged)
         }
     }
 

@@ -98,6 +98,7 @@
     <string name="compose_scheduled_toast">예약된 메시지에 저장됨</string>
     <string name="compose_hint">메시지 작성 중...</string>
     <string name="compose_menu_reply">답장</string>
+    <string name="compose_menu_select">선택</string>
     <string name="compose_menu_copy">문자 복사하기</string>
     <string name="compose_menu_pin">메시지 고정</string>
     <string name="compose_menu_unpin">메시지 고정 해제</string>

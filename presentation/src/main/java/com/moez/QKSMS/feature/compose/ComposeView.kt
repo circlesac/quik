@@ -53,6 +53,7 @@ interface ComposeView : QkView<ComposeState> {
     val messagePartClickIntent: Subject<Long>
     val messagePartContextMenuRegistrar: Subject<View>
     val messagesSelectedIntent: Observable<List<Long>>
+    val messageActionIntent: Observable<Pair<Int, Long>>
     val cancelDelayedIntent: Subject<Long>
     val sendDelayedNowIntent: Subject<Long>
     val resendIntent: Subject<Long>
@@ -93,6 +94,7 @@ interface ComposeView : QkView<ComposeState> {
 
     fun clearSelection()
     fun toggleSelectAll()
+    fun selectMessage(messageId: Long)
     fun expandMessages(messageIds: List<Long>, expand: Boolean)
     fun showDetails(details: String)
     fun showMessageLinkAskDialog(uri: Uri)

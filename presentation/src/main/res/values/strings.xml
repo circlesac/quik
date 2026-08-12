@@ -147,6 +147,7 @@
     <string name="compose_hint">Write a message…</string>
     <string name="compose_no_valid_recipients">Can\'t send to other participants</string>
     <string name="compose_menu_reply">Reply</string>
+    <string name="compose_menu_select">Select</string>
     <string name="compose_menu_copy">Copy text</string>
     <string name="compose_menu_share">Share text</string>
     <string name="compose_menu_forward">Forward</string>

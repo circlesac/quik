@@ -402,23 +402,34 @@ class ComposeViewModel @Inject constructor(
 
         // Copy the message contents
         view.optionsItemIntent
-                .filter { it == R.id.copy }
-                .withLatestFrom(view.messagesSelectedIntent) { _, messageIds ->
-                    ClipboardUtils.copy(
-                        context,
-                        messageIds
-                            .mapNotNull(messageRepo::getMessage)
-                            .sortedBy { it.date }
-                            .getText()
-                    )
-                }
-                .autoDisposable(view.scope())
-                .subscribe { view.clearSelection() }
+            .filter { it == R.id.copy }
+            .withLatestFrom(view.messagesSelectedIntent) { _, messageIds -> messageIds }
+            .mergeWith(
+                view.messageActionIntent
+                    .filter { it.first == R.id.copy }
+                    .map { listOf(it.second) }
+            )
+            .autoDisposable(view.scope())
+            .subscribe { messageIds ->
+                ClipboardUtils.copy(
+                    context,
+                    messageIds
+                        .mapNotNull(messageRepo::getMessage)
+                        .sortedBy { it.date }
+                        .getText()
+                )
+                view.clearSelection()
+            }
 
         // Reply to one message by quoting it in the SMS/MMS draft
         view.optionsItemIntent
             .filter { it == R.id.reply }
             .withLatestFrom(view.messagesSelectedIntent) { _, messageIds -> messageIds.singleOrNull() }
+            .mergeWith(
+                view.messageActionIntent
+                    .filter { it.first == R.id.reply }
+                    .map { it.second }
+            )
             .mapNotNull { it }
             .mapNotNull(messageRepo::getMessage)
             .withLatestFrom(view.textChangedIntent) { message, draft ->
@@ -505,6 +516,11 @@ class ComposeViewModel @Inject constructor(
         view.optionsItemIntent
             .filter { it == R.id.delete }
             .withLatestFrom(view.messagesSelectedIntent) { _, selectedMessages -> selectedMessages }
+            .mergeWith(
+                view.messageActionIntent
+                    .filter { it.first == R.id.delete }
+                    .map { listOf(it.second) }
+            )
             .filter { permissionManager.isDefaultSms().also { if (!it) view.requestDefaultSms() } }
             .autoDisposable(view.scope())
             .subscribe { view.showDeleteDialog(it) }
@@ -520,8 +536,15 @@ class ComposeViewModel @Inject constructor(
         // Forward the message
         view.optionsItemIntent
             .filter { it == R.id.forward }
-            .withLatestFrom(view.messagesSelectedIntent) { _, messages ->
-                messages?.firstOrNull()?.let { messageRepo.getMessage(it) }?.let { message ->
+            .withLatestFrom(view.messagesSelectedIntent) { _, messages -> messages.firstOrNull() }
+            .mergeWith(
+                view.messageActionIntent
+                    .filter { it.first == R.id.forward }
+                    .map { it.second }
+            )
+            .mapNotNull { it }
+            .map { messageId ->
+                messageRepo.getMessage(messageId)?.let { message ->
                     navigator.showCompose(
                         message.getText(),
                         message.parts.filter { !it.isSmil() }.mapNotNull { it.getUri() }
@@ -543,6 +566,11 @@ class ComposeViewModel @Inject constructor(
             .withLatestFrom(view.messagesSelectedIntent) { locked, messageIds ->
                 messageIds.singleOrNull()?.let { messageId -> locked to messageId }
             }
+            .mergeWith(
+                view.messageActionIntent
+                    .filter { it.first == R.id.pin_message || it.first == R.id.unpin_message }
+                    .map { (action, messageId) -> (action == R.id.pin_message) to messageId }
+            )
             .mapNotNull { it }
             .filter { permissionManager.isDefaultSms().also { isDefault ->
                 if (!isDefault) view.requestDefaultSms()
