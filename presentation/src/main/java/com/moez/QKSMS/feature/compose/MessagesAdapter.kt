@@ -191,6 +191,13 @@ class MessagesAdapter @Inject constructor(
                 }
             }
 
+            val selectMessageLongPress = {
+                getItem(adapterPosition)?.let {
+                    toggleSelection(it.id)
+                    view.isActivated = isSelected(it.id)
+                }
+            }
+
             val handleMessageClick = {
                 getItem(adapterPosition)?.let {
                     when (toggleSelection(it.id, false)) {
@@ -201,7 +208,7 @@ class MessagesAdapter @Inject constructor(
             }
             view.setOnClickListener { handleMessageClick() }
             view.setOnLongClickListener {
-                showMessageActions()
+                selectMessageLongPress()
                 true
             }
             val bodyGestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
