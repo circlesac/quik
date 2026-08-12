@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/conversation_notifications"
+        android:icon="@drawable/ic_notifications_black_24dp"
+        android:title="@string/info_notifications" />
+
+    <item
+        android:id="@+id/unread"
+        android:icon="@drawable/ic_markunread_black_24dp"
+        android:title="@string/main_menu_unread" />
+
+    <item
+        android:id="@+id/archive"
+        android:icon="@drawable/ic_archive_white_24dp"
+        android:title="@string/info_archive" />
+
+    <item
+        android:id="@+id/block"
+        android:icon="@drawable/ic_block_white_24dp"
+        android:title="@string/info_block" />
+
+    <item
+        android:id="@+id/delete"
+        android:icon="@drawable/ic_delete_white_24dp"
+        android:title="@string/info_delete" />
+
+    <item
+        android:id="@+id/conversation_details"
+        android:icon="@drawable/ic_info_black_24dp"
+        android:title="@string/info_title" />
+
+</menu>

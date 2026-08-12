@@ -55,8 +55,12 @@ import dev.octoshrimpy.quik.extensions.isVideo
 import dev.octoshrimpy.quik.extensions.mapNotNull
 import dev.octoshrimpy.quik.interactor.ActionDelayedMessage
 import dev.octoshrimpy.quik.interactor.AddScheduledMessage
+import dev.octoshrimpy.quik.interactor.DeleteConversations
 import dev.octoshrimpy.quik.interactor.DeleteMessages
+import dev.octoshrimpy.quik.interactor.MarkArchived
 import dev.octoshrimpy.quik.interactor.MarkRead
+import dev.octoshrimpy.quik.interactor.MarkUnarchived
+import dev.octoshrimpy.quik.interactor.MarkUnread
 import dev.octoshrimpy.quik.interactor.SendExistingMessage
 import dev.octoshrimpy.quik.interactor.SaveImage
 import dev.octoshrimpy.quik.interactor.SendNewMessage
@@ -114,8 +118,12 @@ class ComposeViewModel @Inject constructor(
     private val billingManager: BillingManager,
     private val actionDelayedMessage: ActionDelayedMessage,
     private val conversationRepo: ConversationRepository,
+    private val deleteConversations: DeleteConversations,
     private val deleteMessages: DeleteMessages,
+    private val markArchived: MarkArchived,
     private val markRead: MarkRead,
+    private val markUnarchived: MarkUnarchived,
+    private val markUnread: MarkUnread,
     private val messageDetailsFormatter: MessageDetailsFormatter,
     private val messageRepo: MessageRepository,
     private val scheduledMessageRepo: ScheduledMessageRepository,
@@ -146,6 +154,10 @@ class ComposeViewModel @Inject constructor(
     private var bluetoothMicManager: BluetoothMicManager? = null
 
     init {
+        disposables += deleteConversations
+        disposables += markArchived
+        disposables += markUnarchived
+
         // set shared subscription into state if set
         subscriptionManager.activeSubscriptionInfoList.firstOrNull {
             it.subscriptionId == sharedSubscriptionId
@@ -393,12 +405,51 @@ class ComposeViewModel @Inject constructor(
             .autoDisposable(view.scope())
             .subscribe { externalNavigator.makePhoneCall(it) }
 
-        // Open the conversation settings if info button is clicked
+        // Show the conversation actions if the overflow button is clicked
         view.optionsItemIntent
                 .filter { it == R.id.info }
                 .withLatestFrom(conversation) { _, conversation -> conversation }
                 .autoDisposable(view.scope())
-                .subscribe { conversation -> navigator.showConversationInfo(conversation.id) }
+                .subscribe { conversation ->
+                    view.showConversationActions(conversation.archived, conversation.blocked)
+                }
+
+        view.conversationActionIntent
+            .withLatestFrom(conversation) { action, conversation -> action to conversation }
+            .autoDisposable(view.scope())
+            .subscribe { (action, conversation) ->
+                when (action) {
+                    R.id.conversation_notifications ->
+                        externalNavigator.showNotificationSettings(conversation.id)
+                    R.id.unread -> {
+                        if (permissionManager.isDefaultSms()) {
+                            markUnread.execute(listOf(conversation.id))
+                            navigator.showMainActivity()
+                        } else {
+                            view.requestDefaultSms()
+                        }
+                    }
+                    R.id.archive -> when (conversation.archived) {
+                        true -> markUnarchived.execute(listOf(conversation.id))
+                        false -> markArchived.execute(listOf(conversation.id))
+                    }
+                    R.id.block ->
+                        view.showBlockingDialog(listOf(conversation.id), !conversation.blocked)
+                    R.id.delete -> {
+                        if (permissionManager.isDefaultSms()) {
+                            view.showDeleteConversationDialog()
+                        } else {
+                            view.requestDefaultSms()
+                        }
+                    }
+                    R.id.conversation_details -> navigator.showConversationInfo(conversation.id)
+                }
+            }
+
+        view.confirmDeleteConversationIntent
+            .withLatestFrom(conversation) { _, conversation -> conversation }
+            .autoDisposable(view.scope())
+            .subscribe { conversation -> deleteConversations.execute(listOf(conversation.id)) }
 
         // Copy the message contents
         view.optionsItemIntent

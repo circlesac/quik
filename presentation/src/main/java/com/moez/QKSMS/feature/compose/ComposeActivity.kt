@@ -77,6 +77,7 @@ import dev.octoshrimpy.quik.common.util.extensions.setVisible
 import dev.octoshrimpy.quik.common.util.extensions.showKeyboard
 import dev.octoshrimpy.quik.common.widget.MicInputCloudView
 import dev.octoshrimpy.quik.extensions.mapNotNull
+import dev.octoshrimpy.quik.feature.blocking.BlockingDialog
 import dev.octoshrimpy.quik.feature.compose.editing.ChipsAdapter
 import dev.octoshrimpy.quik.feature.contacts.ContactsActivity
 import dev.octoshrimpy.quik.model.Attachment
@@ -102,6 +103,7 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     @Inject lateinit var chipsAdapter: ChipsAdapter
     @Inject lateinit var dateFormatter: DateFormatter
     @Inject lateinit var messageAdapter: MessagesAdapter
+    @Inject lateinit var blockingDialog: BlockingDialog
     @Inject lateinit var externalNavigator : ExternalNavigator
     @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
 
@@ -142,6 +144,8 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     override val messagePartContextMenuRegistrar: Subject<View> by lazy { messageAdapter.partContextMenuRegistrar }
     override val messagesSelectedIntent by lazy { messageAdapter.selectionChanges }
     override val messageActionIntent: Subject<Pair<Int, Long>> = PublishSubject.create()
+    override val conversationActionIntent: Subject<Int> = PublishSubject.create()
+    override val confirmDeleteConversationIntent: Subject<Unit> = PublishSubject.create()
     override val cancelDelayedIntent: Subject<Long> by lazy { messageAdapter.cancelSendingClicks }
     override val sendDelayedNowIntent: Subject<Long> by lazy { messageAdapter.sendNowClicks }
     override val resendIntent: Subject<Long> by lazy { messageAdapter.resendClicks }
@@ -540,6 +544,50 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     }
 
     override fun selectMessage(messageId: Long) = messageAdapter.selectMessage(messageId)
+
+    override fun showConversationActions(archived: Boolean, blocked: Boolean) {
+        PopupMenu(this, binding.toolbar.findViewById(R.id.info) ?: binding.toolbar).apply {
+            setForceShowIcon(true)
+            menuInflater.inflate(R.menu.conversation_actions, menu)
+            menu.findItem(R.id.archive).apply {
+                title = getString(if (archived) R.string.info_unarchive else R.string.info_archive)
+                icon = ContextCompat.getDrawable(
+                    this@ComposeActivity,
+                    if (archived) R.drawable.ic_inbox_black_24dp else R.drawable.ic_archive_white_24dp
+                )
+                isEnabled = !blocked
+            }
+            menu.findItem(R.id.block).apply {
+                title = getString(if (blocked) R.string.info_unblock else R.string.info_block)
+            }
+            menu.findItem(R.id.conversation_notifications).isEnabled = !blocked
+            menu.iterator().forEach { item ->
+                item.icon = item.icon?.mutate()?.apply {
+                    setTint(resolveThemeColor(android.R.attr.textColorSecondary))
+                }
+            }
+            setOnMenuItemClickListener { item ->
+                conversationActionIntent.onNext(item.itemId)
+                true
+            }
+            show()
+        }
+    }
+
+    override fun showBlockingDialog(conversations: List<Long>, block: Boolean) {
+        blockingDialog.show(this, conversations, block)
+    }
+
+    override fun showDeleteConversationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_delete_title)
+            .setMessage(resources.getQuantityString(R.plurals.dialog_delete_message, 1, 1))
+            .setPositiveButton(R.string.button_delete) { _, _ ->
+                confirmDeleteConversationIntent.onNext(Unit)
+            }
+            .setNegativeButton(R.string.button_cancel, null)
+            .show()
+    }
 
     private fun showMessageActions(target: MessageActionTarget) {
         val visibleBounds = Rect()
