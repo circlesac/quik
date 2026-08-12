@@ -12,6 +12,11 @@
         android:title="@string/compose_menu_copy" />
 
     <item
+        android:id="@+id/share"
+        android:icon="@drawable/ic_share_black_24dp"
+        android:title="@string/compose_menu_share" />
+
+    <item
         android:id="@+id/forward"
         android:icon="@drawable/ic_forward_black_24dp"
         android:title="@string/compose_menu_forward" />

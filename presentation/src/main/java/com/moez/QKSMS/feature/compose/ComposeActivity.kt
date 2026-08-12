@@ -48,6 +48,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.iterator
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
@@ -68,6 +69,7 @@ import dev.octoshrimpy.quik.common.util.extensions.autoScrollToStart
 import dev.octoshrimpy.quik.common.util.extensions.dpToPx
 import dev.octoshrimpy.quik.common.util.extensions.hideKeyboard
 import dev.octoshrimpy.quik.common.util.extensions.makeToast
+import dev.octoshrimpy.quik.common.util.extensions.resolveThemeColor
 import dev.octoshrimpy.quik.common.util.extensions.scrapViews
 import dev.octoshrimpy.quik.common.util.extensions.setBackgroundTint
 import dev.octoshrimpy.quik.common.util.extensions.setTint
@@ -551,10 +553,17 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
         binding.contentView.addView(popupAnchor, ConstraintLayout.LayoutParams(1, 1))
 
         PopupMenu(this, popupAnchor).apply {
+            setForceShowIcon(true)
             menuInflater.inflate(R.menu.message_actions, menu)
             menu.findItem(R.id.copy).isVisible = target.hasText
+            menu.findItem(R.id.share).isVisible = target.hasText
             menu.findItem(R.id.pin_message).isVisible = !target.locked
             menu.findItem(R.id.unpin_message).isVisible = target.locked
+            menu.iterator().forEach { item ->
+                item.icon = item.icon?.mutate()?.apply {
+                    setTint(resolveThemeColor(android.R.attr.textColorSecondary))
+                }
+            }
             setOnMenuItemClickListener { item ->
                 if (item.itemId == R.id.select_message) {
                     selectMessage(target.messageId)

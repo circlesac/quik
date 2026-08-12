@@ -502,6 +502,14 @@ class ComposeViewModel @Inject constructor(
             .autoDisposable(view.scope())
             .subscribe { view.clearSelection() }
 
+        // Share one message directly from the short-tap action menu
+        view.messageActionIntent
+            .filter { it.first == R.id.share }
+            .mapNotNull { messageRepo.getMessage(it.second)?.getText() }
+            .filter(String::isNotBlank)
+            .autoDisposable(view.scope())
+            .subscribe(navigator::shareText)
+
         // Show the message details
         view.optionsItemIntent
                 .filter { it == R.id.details }

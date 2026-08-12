@@ -163,4 +163,13 @@ class Navigator @Inject constructor(
 
         startActivityExternal(intent)
     }
+
+    fun shareText(text: String) {
+        val intent = Intent(Intent.ACTION_SEND)
+                .setType("text/plain")
+                .putExtra(Intent.EXTRA_TEXT, text)
+                .let { Intent.createChooser(it, null) }
+
+        startActivityExternal(intent)
+    }
 }
