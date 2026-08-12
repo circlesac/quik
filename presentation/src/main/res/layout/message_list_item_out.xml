@@ -174,14 +174,15 @@
                         android:clipToPadding="false"
                         android:orientation="vertical">
 
-                        <LinearLayout
+                        <FrameLayout
                             android:id="@+id/bubble"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:background="@drawable/message_only"
                             android:backgroundTint="?attr/bubbleColor"
                             android:minHeight="36dp"
-                            android:orientation="vertical">
+                            android:clipChildren="false"
+                            android:clipToPadding="false">
 
                             <dev.octoshrimpy.quik.common.widget.TightTextView
                                 android:id="@+id/body"
@@ -196,14 +197,13 @@
                                 style="@style/TextSecondary"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_gravity="end"
-                                android:layout_marginTop="2dp"
+                                android:layout_gravity="end|bottom"
                                 android:paddingStart="4dp"
                                 android:paddingEnd="4dp"
                                 app:textSize="tertiary"
                                 tools:text="오후 3:42" />
 
-                        </LinearLayout>
+                        </FrameLayout>
 
                         <LinearLayout
                             android:id="@+id/reactions"

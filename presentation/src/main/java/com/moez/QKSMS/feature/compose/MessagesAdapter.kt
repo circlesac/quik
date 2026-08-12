@@ -20,6 +20,8 @@ package dev.octoshrimpy.quik.feature.compose
 
 import android.animation.ObjectAnimator
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
@@ -31,6 +33,7 @@ import android.text.method.LinkMovementMethod
 import android.text.Spanned
 import android.text.style.BackgroundColorSpan
 import android.text.style.ClickableSpan
+import android.text.style.ReplacementSpan
 import android.text.style.StyleSpan
 import android.text.style.URLSpan
 import android.text.util.Linkify
@@ -80,6 +83,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
+import kotlin.math.roundToInt
 
 class MessagesAdapter @Inject constructor(
     subscriptionManager: SubscriptionManagerCompat,
@@ -499,9 +503,17 @@ class MessagesAdapter @Inject constructor(
             }
         }
 
+        val shouldShowBody = message.isSms() || spanString.isNotBlank()
+        val bodySpannable =
+            if (shouldShowBody) SpannableStringBuilder(spanString) else SpannableStringBuilder()
+
+        if (shouldShowBody) {
+            appendTimestampPlaceholder(bodySpannable, timestamp)
+        }
+
         body.apply {
-            text = spanString
-            setVisible(message.isSms() || spanString.isNotBlank())
+            text = bodySpannable
+            setVisible(shouldShowBody)
         }
 
         bodyBubble.apply {
@@ -529,6 +541,55 @@ class MessagesAdapter @Inject constructor(
         }
 
         showEmojiReactions(reactions, reactionText, message)
+    }
+
+    private fun appendTimestampPlaceholder(body: SpannableStringBuilder, timestamp: TextView) {
+        val width = getTimestampPlaceholderWidth(timestamp)
+        if (width <= 0) return
+
+        val start = body.length
+        body.append('\uFFFC')
+        body.setSpan(
+            InlineTimestampPlaceholderSpan(width),
+            start,
+            body.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+    }
+
+    private fun getTimestampPlaceholderWidth(timestamp: TextView): Int {
+        val timestampText = timestamp.text?.toString().orEmpty()
+        if (timestampText.isBlank()) return 0
+
+        return timestamp.paint.measureText(timestampText).roundToInt() +
+            timestamp.totalPaddingStart + timestamp.totalPaddingEnd +
+            4.dpToPx(timestamp.context)
+    }
+
+    private class InlineTimestampPlaceholderSpan(private val width: Int) : ReplacementSpan() {
+        override fun getSize(
+            paint: Paint,
+            text: CharSequence?,
+            start: Int,
+            end: Int,
+            fm: Paint.FontMetricsInt?
+        ): Int {
+            return width
+        }
+
+        override fun draw(
+            canvas: Canvas,
+            text: CharSequence?,
+            start: Int,
+            end: Int,
+            x: Float,
+            top: Int,
+            y: Int,
+            bottom: Int,
+            paint: Paint
+        ) {
+            // no-op placeholder
+        }
     }
 
     private fun showEmojiReactions(reactionsContainer: View, reactionTextView: TextView, message: Message) {
