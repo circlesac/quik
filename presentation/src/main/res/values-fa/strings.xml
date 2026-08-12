@@ -178,11 +178,6 @@
     <string name="scheduled_empty_message_3_timestamp">فرستادن در ۲ دی‌ماه</string>
     <string name="scheduled_compose_cd">پیامی را برنامه‌ریزی کنید</string>
     <string name="scheduled_options_title">پیام برنامه‌ریزی شده</string>
-    <string-array name="scheduled_options">
-        <item>هم اکنون بفرست</item>
-        <item>کپی متن</item>
-        <item>حذف</item>
-    </string-array>
     <string name="settings_category_appearance">نما</string>
     <string name="settings_category_general">فراگیر</string>
     <string name="settings_category_qkreply">پاسخ چالاک</string>

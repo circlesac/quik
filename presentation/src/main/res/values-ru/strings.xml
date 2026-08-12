@@ -182,11 +182,6 @@
     <string name="scheduled_empty_message_3_timestamp">Отправка 23 декабря </string>
     <string name="scheduled_compose_cd">Запланировать сообщение</string>
     <string name="scheduled_options_title">Запланированное сообщение</string>
-    <string-array name="scheduled_options">
-        <item>Отправить сейчас</item>
-        <item>Копировать текст</item>
-        <item>Удалить</item>
-    </string-array>
     <string name="settings_category_appearance">Внешний вид</string>
     <string name="settings_category_general">Общее</string>
     <string name="settings_category_qkreply">QK-ответ</string>

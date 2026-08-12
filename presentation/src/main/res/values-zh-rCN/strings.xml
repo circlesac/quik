@@ -179,11 +179,6 @@
     <string name="scheduled_empty_message_3_timestamp">在12月23日发送 </string>
     <string name="scheduled_compose_cd">创建预约短信</string>
     <string name="scheduled_options_title">预约短信</string>
-    <string-array name="scheduled_options">
-        <item>现在发送</item>
-        <item>复制文本</item>
-        <item>删除</item>
-    </string-array>
     <string name="settings_category_appearance">外观</string>
     <string name="settings_category_general">通用</string>
     <string name="settings_category_qkreply">快速回复</string>

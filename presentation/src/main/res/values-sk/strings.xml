@@ -182,11 +182,6 @@
     <string name="scheduled_empty_message_3_timestamp">Pošle sa 23. decembra</string>
     <string name="scheduled_compose_cd">Naplánovať správu</string>
     <string name="scheduled_options_title">Naplánovaná správa</string>
-    <string-array name="scheduled_options">
-        <item>Odoslať teraz</item>
-        <item>Kopírovať text</item>
-        <item>Odstrániť</item>
-    </string-array>
     <string name="settings_category_appearance">Vzhľad</string>
     <string name="settings_category_general">Všeobecné</string>
     <string name="settings_category_qkreply">Rýchla odpoveď</string>

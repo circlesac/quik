@@ -181,11 +181,6 @@
     <string name="scheduled_empty_message_3_timestamp">Slanje 23. prosinca</string>
     <string name="scheduled_compose_cd">Zakaži poruku</string>
     <string name="scheduled_options_title">Zakazana poruka</string>
-    <string-array name="scheduled_options">
-        <item>Pošalji sada</item>
-        <item>Kopiraj tekst</item>
-        <item>Izbriši</item>
-    </string-array>
     <string name="settings_category_appearance">Izgled</string>
     <string name="settings_category_general">Općenito</string>
     <string name="settings_category_qkreply">QK odgovor</string>

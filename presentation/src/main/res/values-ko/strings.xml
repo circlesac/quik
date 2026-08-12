@@ -183,11 +183,6 @@
     <string name="scheduled_empty_message_3_timestamp">12월 23일에 보냅니다.</string>
     <string name="scheduled_compose_cd">메시지 예약 전송하기</string>
     <string name="scheduled_options_title">예약된 메시지</string>
-    <string-array name="scheduled_options">
-        <item>지금 보내기</item>
-        <item>텍스트 복사하기</item>
-        <item>삭제</item>
-    </string-array>
     <string name="settings_category_appearance">디자인</string>
     <string name="settings_category_general">일반 설정</string>
     <string name="settings_category_qkreply">빠른 응답</string>

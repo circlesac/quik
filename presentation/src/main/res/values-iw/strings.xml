@@ -182,11 +182,6 @@
     <string name="scheduled_empty_message_3_timestamp">לשליחה ב־23 בדצמבר</string>
     <string name="scheduled_compose_cd">תזמון הודעה</string>
     <string name="scheduled_options_title">הודעה מתוזמנת</string>
-    <string-array name="scheduled_options">
-        <item>שלח כעת</item>
-        <item>העתק טקסט</item>
-        <item>מחק</item>
-    </string-array>
     <string name="settings_category_appearance">מראה</string>
     <string name="settings_category_general">כללי</string>
     <string name="settings_category_qkreply">תגובה מהירה</string>

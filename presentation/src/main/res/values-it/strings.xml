@@ -181,11 +181,6 @@
     <string name="scheduled_empty_message_3_timestamp">Invio il 23 dicembre </string>
     <string name="scheduled_compose_cd">Schedula un messaggio</string>
     <string name="scheduled_options_title">Messaggio pianificato</string>
-    <string-array name="scheduled_options">
-        <item>Invia ora</item>
-        <item>Copia testo</item>
-        <item>Cancella</item>
-    </string-array>
     <string name="settings_category_appearance">Aspetto</string>
     <string name="settings_category_general">Generale</string>
     <string name="settings_category_qkreply">Risposta QK</string>
