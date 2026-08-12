@@ -283,6 +283,7 @@ class MessagesAdapter @Inject constructor(
         val simIndex: TextView
         val sim: ImageView
         val body: TextView
+        val bodyBubble: View
         val parts: androidx.recyclerview.widget.RecyclerView
         val reactions: View
         val reactionText: TextView
@@ -295,6 +296,7 @@ class MessagesAdapter @Inject constructor(
             simIndex = binding.simIndex
             sim = binding.sim
             body = binding.body
+            bodyBubble = binding.bubble
             parts = binding.parts
             reactions = binding.reactions
             reactionText = binding.reactionText
@@ -358,6 +360,7 @@ class MessagesAdapter @Inject constructor(
             simIndex = binding.simIndex
             sim = binding.sim
             body = binding.body
+            bodyBubble = binding.bubble
             parts = binding.parts
             reactions = binding.reactions
             reactionText = binding.reactionText
@@ -371,7 +374,6 @@ class MessagesAdapter @Inject constructor(
 
             body.apply {
                 setTextColor(theme.textPrimary)
-                setBackgroundTint(theme.theme)
                 highlightColor = R.attr.bubbleColor.withAlpha(0x5d)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     textSelectHandle?.setTint(R.attr.bubbleColor.withAlpha(0x7d))
@@ -500,7 +502,9 @@ class MessagesAdapter @Inject constructor(
         body.apply {
             text = spanString
             setVisible(message.isSms() || spanString.isNotBlank())
+        }
 
+        bodyBubble.apply {
             setBackgroundResource(
                 getBubble(
                     emojiOnly = emojiOnly,
@@ -510,6 +514,10 @@ class MessagesAdapter @Inject constructor(
                     isMe = message.isMe()
                 )
             )
+        }
+
+        if (!message.isMe()) {
+            bodyBubble.setBackgroundTint(theme.theme)
         }
 
         // Bind the parts

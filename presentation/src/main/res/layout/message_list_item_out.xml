@@ -174,16 +174,36 @@
                         android:clipToPadding="false"
                         android:orientation="vertical">
 
-                        <dev.octoshrimpy.quik.common.widget.TightTextView
-                            android:id="@+id/body"
-                            style="@style/TextPrimary"
+                        <LinearLayout
+                            android:id="@+id/bubble"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:autoLink="email|phone|web"
                             android:background="@drawable/message_only"
                             android:backgroundTint="?attr/bubbleColor"
-                            android:gravity="start|center_vertical"
-                            android:minHeight="36dp" />
+                            android:minHeight="36dp"
+                            android:orientation="vertical">
+
+                            <dev.octoshrimpy.quik.common.widget.TightTextView
+                                android:id="@+id/body"
+                                style="@style/TextPrimary"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:autoLink="email|phone|web"
+                                android:gravity="start|center_vertical" />
+
+                            <dev.octoshrimpy.quik.common.widget.QkTextView
+                                android:id="@+id/timestamp"
+                                style="@style/TextSecondary"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="end"
+                                android:layout_marginTop="2dp"
+                                android:paddingStart="4dp"
+                                android:paddingEnd="4dp"
+                                app:textSize="tertiary"
+                                tools:text="오후 3:42" />
+
+                        </LinearLayout>
 
                         <LinearLayout
                             android:id="@+id/reactions"
@@ -212,18 +232,6 @@
                                 android:textSize="16sp" />
 
                         </LinearLayout>
-
-                        <dev.octoshrimpy.quik.common.widget.QkTextView
-                            android:id="@+id/timestamp"
-                            style="@style/TextSecondary"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="end"
-                            android:layout_marginTop="2dp"
-                            android:paddingStart="4dp"
-                            android:paddingEnd="4dp"
-                            app:textSize="tertiary"
-                            tools:text="오후 3:42" />
 
                     </LinearLayout>
                 </LinearLayout>
