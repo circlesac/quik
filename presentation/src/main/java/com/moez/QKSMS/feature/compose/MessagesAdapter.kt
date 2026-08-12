@@ -61,7 +61,6 @@ import dev.octoshrimpy.quik.compat.SubscriptionManagerCompat
 import dev.octoshrimpy.quik.extensions.isSmil
 import dev.octoshrimpy.quik.extensions.isText
 import dev.octoshrimpy.quik.extensions.joinTo
-import dev.octoshrimpy.quik.extensions.millisecondsToMinutes
 import dev.octoshrimpy.quik.extensions.truncateWithEllipses
 import dev.octoshrimpy.quik.feature.compose.BubbleUtils.canGroup
 import dev.octoshrimpy.quik.feature.compose.BubbleUtils.getBubble
@@ -280,6 +279,7 @@ class MessagesAdapter @Inject constructor(
         // Get views based on message type
         val isOutgoing = message.isMe()
         val timestamp: TextView
+        val dateHeader: TextView
         val simIndex: TextView
         val sim: ImageView
         val body: TextView
@@ -291,6 +291,7 @@ class MessagesAdapter @Inject constructor(
         if (isOutgoing) {
             val binding = MessageListItemOutBinding.bind(holder.itemView)
             timestamp = binding.timestamp
+            dateHeader = binding.dateHeader
             simIndex = binding.simIndex
             sim = binding.sim
             body = binding.body
@@ -353,6 +354,7 @@ class MessagesAdapter @Inject constructor(
         } else {
             val binding = MessageListItemInBinding.bind(holder.itemView)
             timestamp = binding.timestamp
+            dateHeader = binding.dateHeader
             simIndex = binding.simIndex
             sim = binding.sim
             body = binding.body
@@ -404,17 +406,22 @@ class MessagesAdapter @Inject constructor(
         // Bind the message status
         bindStatus(status, isMsgTextTruncated, message, next)
 
-        // Bind the timestamp
+        val shouldShowDateHeader = previous == null || !dateFormatter.isSameLocalDay(
+            message.date,
+            previous.date
+        )
+
+        // Bind the date header and timestamp
+        dateHeader.apply {
+            setVisible(shouldShowDateHeader)
+            text = dateFormatter.getDateHeader(message.date)
+        }
+
         val subscription = subs.find { it.subscriptionId == message.subId }
 
         timestamp.apply {
-            text = dateFormatter.getMessageTimestamp(message.date)
-            setVisible(
-                    ((message.date - (previous?.date ?: 0))
-                        .millisecondsToMinutes() >= BubbleUtils.TIMESTAMP_THRESHOLD) ||
-                            (message.subId != previous?.subId) &&
-                            (subscription != null)
-            )
+            text = dateFormatter.getTimestamp(message.date)
+            setVisible(true)
         }
 
         simIndex.text = subscription?.simSlotIndex?.plus(1)?.toString()

@@ -57,6 +57,22 @@ class DateFormatter @Inject constructor(val context: Context) {
         return getFormatter("h:mm a").format(date)
     }
 
+    fun getDateHeader(date: Long): String {
+        return getFormatter("yMMMMEEEEd").format(date)
+    }
+
+    fun isSameLocalDay(firstDate: Long, secondDate: Long): Boolean {
+        val first = Calendar.getInstance().apply {
+            timeInMillis = firstDate
+        }
+
+        val second = Calendar.getInstance().apply {
+            timeInMillis = secondDate
+        }
+
+        return first.isSameDay(second)
+    }
+
     fun getMessageTimestamp(date: Long): String {
         val now = Calendar.getInstance()
         val then = Calendar.getInstance()

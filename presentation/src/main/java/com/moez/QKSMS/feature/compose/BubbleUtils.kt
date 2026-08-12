@@ -19,7 +19,9 @@
 package dev.octoshrimpy.quik.feature.compose
 
 import dev.octoshrimpy.quik.R
+import dev.octoshrimpy.quik.common.util.extensions.isSameDay
 import dev.octoshrimpy.quik.model.Message
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
@@ -30,6 +32,9 @@ object BubbleUtils {
     fun canGroup(message: Message, other: Message?): Boolean {
         if (other == null) return false
         if (message.emojiReactions.isNotEmpty() || other.emojiReactions.isNotEmpty()) return false
+        val messageDay = Calendar.getInstance().apply { timeInMillis = message.date }
+        val otherDay = Calendar.getInstance().apply { timeInMillis = other.date }
+        if (!messageDay.isSameDay(otherDay)) return false
         val diff = TimeUnit.MILLISECONDS.toMinutes(abs(message.date - other.date))
         return message.compareSender(other) && diff < TIMESTAMP_THRESHOLD
     }
