@@ -32,8 +32,11 @@ data class MainState(
     val smsPermission: Boolean = true,
     val contactPermission: Boolean = true,
     val notificationPermission: Boolean = true,
-    val scheduledConversationIds: Set<Long> = emptySet()
+    val scheduledConversationIds: Set<Long> = emptySet(),
+    val conversationFilter: ConversationListFilter = ConversationListFilter.ALL
 )
+
+enum class ConversationListFilter { ALL, UNREAD }
 
 sealed class MainPage
 

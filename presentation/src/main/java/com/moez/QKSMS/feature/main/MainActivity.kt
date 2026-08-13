@@ -39,6 +39,7 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.tabs.TabLayout
 import com.jakewharton.rxbinding2.view.clicks
 import com.jakewharton.rxbinding2.widget.textChanges
 import com.uber.autodispose.android.lifecycle.scope
@@ -117,6 +118,7 @@ class MainActivity : QkThemedActivity(), MainView {
     override val changelogMoreIntent by lazy { changelogDialog.moreClicks }
     override val undoArchiveIntent: Subject<Unit> = PublishSubject.create()
     override val snackbarButtonIntent: Subject<Unit> = PublishSubject.create()
+    override val conversationFilterIntent: Subject<ConversationListFilter> = PublishSubject.create()
 
     private val viewModel by lazy {
         ViewModelProviders.of(this, viewModelFactory)[MainViewModel::class.java]
@@ -190,6 +192,16 @@ class MainActivity : QkThemedActivity(), MainView {
             if (composeScrolled) binding.recyclerView.smoothScrollToPosition(0)
             else composeIntent.onNext(Unit)
         }
+        binding.conversationTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                conversationFilterIntent.onNext(
+                    if (tab.position == 0) ConversationListFilter.ALL else ConversationListFilter.UNREAD
+                )
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = scrollConversationsToTop()
+        })
 
         // Don't allow clicks to pass through the drawer layout
         binding.drawer.root.clicks().autoDisposable(scope()).subscribe()
@@ -223,6 +235,7 @@ class MainActivity : QkThemedActivity(), MainView {
 
                     // Set the FAB compose icon color
                     binding.compose.setTint(theme.textPrimary)
+                    binding.conversationTabs.setSelectedTabIndicatorColor(theme.theme)
                 }
     }
 
@@ -269,6 +282,12 @@ class MainActivity : QkThemedActivity(), MainView {
                 state.page is Searching
         )
         binding.toolbarTitle.setVisible(binding.toolbarSearch.visibility != View.VISIBLE)
+        binding.conversationTabs.setVisible(state.page is Inbox && state.page.selected == 0)
+        if (state.page is Inbox) {
+            val tabPosition = if (state.conversationFilter == ConversationListFilter.ALL) 0 else 1
+            if (binding.conversationTabs.selectedTabPosition != tabPosition)
+                binding.conversationTabs.getTabAt(tabPosition)?.select()
+        }
 
         binding.toolbar.menu.apply {
             findItem(R.id.select_all)?.isVisible =
@@ -309,7 +328,11 @@ class MainActivity : QkThemedActivity(), MainView {
                     binding.recyclerView.adapter = conversationsAdapter
                 conversationsAdapter.updateData(state.page.data)
                 itemTouchHelper.attachToRecyclerView(binding.recyclerView)
-                binding.empty.setText(R.string.inbox_empty_text)
+                binding.empty.setText(
+                    if (state.conversationFilter == ConversationListFilter.UNREAD)
+                        R.string.inbox_unread_empty_text
+                    else R.string.inbox_empty_text
+                )
             }
 
             is Searching -> {
@@ -517,5 +540,10 @@ class MainActivity : QkThemedActivity(), MainView {
                 binding.drawer.inbox.requestFocus()
         } else
             binding.toolbarSearch.requestFocus()
+    }
+
+    override fun scrollConversationsToTop() {
+        binding.recyclerView.stopScroll()
+        binding.recyclerView.scrollToPosition(0)
     }
 }

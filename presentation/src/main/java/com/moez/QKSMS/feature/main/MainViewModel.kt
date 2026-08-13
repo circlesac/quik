@@ -43,6 +43,7 @@ import dev.octoshrimpy.quik.manager.BillingManager
 import dev.octoshrimpy.quik.manager.ChangelogManager
 import dev.octoshrimpy.quik.manager.PermissionManager
 import dev.octoshrimpy.quik.data.db.dao.SyncDao
+import dev.octoshrimpy.quik.model.Conversation
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.EmojiReactionRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
@@ -93,15 +94,25 @@ class MainViewModel @Inject constructor(
 
     // Live subscription that pushes conversation list emissions into the active page's data
     private var conversationsDisposable: Disposable? = null
+    private var latestInboxConversations = emptyList<Conversation>()
+
+    private fun filterInbox(
+        conversations: List<Conversation>,
+        filter: ConversationListFilter
+    ) = when (filter) {
+        ConversationListFilter.ALL -> conversations
+        ConversationListFilter.UNREAD -> conversations.filter { it.unread }
+    }
 
     private fun observeConversations(archived: Boolean) {
         conversationsDisposable?.let { disposables.remove(it) }
         conversationsDisposable = conversationRepo.getConversations(prefs.unreadAtTop.get(), archived)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe { conversations ->
+                if (!archived) latestInboxConversations = conversations
                 newState {
                     copy(page = when (val currentPage = page) {
-                        is Inbox -> currentPage.copy(data = conversations)
+                        is Inbox -> currentPage.copy(data = filterInbox(conversations, conversationFilter))
                         is Archived -> currentPage.copy(data = conversations)
                         else -> currentPage
                     })
@@ -317,6 +328,23 @@ class MainViewModel @Inject constructor(
         view.composeIntent
                 .autoDisposable(view.scope())
                 .subscribe { navigator.showCompose() }
+
+        view.conversationFilterIntent
+            .distinctUntilChanged()
+            .withLatestFrom(state) { filter, state -> filter to state }
+            .filter { (_, state) -> state.page is Inbox && state.page.selected == 0 }
+            .autoDisposable(view.scope())
+            .subscribe { (filter, state) ->
+                newState {
+                    copy(
+                        conversationFilter = filter,
+                        page = (state.page as Inbox).copy(
+                            data = filterInbox(latestInboxConversations, filter)
+                        )
+                    )
+                }
+                view.scrollConversationsToTop()
+            }
 
         view.homeIntent
                 .withLatestFrom(state) { _, state ->

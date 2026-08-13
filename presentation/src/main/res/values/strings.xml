@@ -16,7 +16,7 @@
   ~ You should have received a copy of the GNU General Public License
   ~ along with QKSMS.  If not, see <http://www.gnu.org/licenses/>.
   -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <string name="app_name" translatable="false">QUIK</string>
 
@@ -67,6 +67,9 @@
     <string name="main_message_results_title">Results in messages</string>
     <string name="main_message_results">%d messages</string>
     <string name="inbox_empty_text">Your conversations will appear here</string>
+    <string name="conversation_filter_all" tools:ignore="MissingTranslation">All chats</string>
+    <string name="conversation_filter_unread" tools:ignore="MissingTranslation">Unread</string>
+    <string name="inbox_unread_empty_text" tools:ignore="MissingTranslation">No unread conversations</string>
     <string name="inbox_search_empty_text">No results</string>
     <string name="archived_empty_text">Your archived conversations will appear here</string>
     <string name="main_fab_cd">Start new conversation</string>

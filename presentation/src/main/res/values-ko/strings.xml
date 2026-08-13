@@ -50,6 +50,9 @@
     <string name="main_message_results_title">메시지 검색 결과</string>
     <string name="main_message_results">%d 개의 새로운 메시지</string>
     <string name="inbox_empty_text">대화가 여기에 나타납니다</string>
+    <string name="conversation_filter_all">모든 대화</string>
+    <string name="conversation_filter_unread">안 읽음</string>
+    <string name="inbox_unread_empty_text">읽지 않은 대화가 없습니다</string>
     <string name="inbox_search_empty_text">결과없음</string>
     <string name="archived_empty_text">보관된 메시지가 여기 나타납니다</string>
     <string name="main_fab_cd">새로운 대화 시작하기</string>
