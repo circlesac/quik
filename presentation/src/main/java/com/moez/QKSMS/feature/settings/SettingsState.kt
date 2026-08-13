@@ -18,6 +18,7 @@
  */
 package dev.octoshrimpy.quik.feature.settings
 
+import dev.octoshrimpy.quik.repository.MessageRepository
 import dev.octoshrimpy.quik.repository.SyncRepository
 import dev.octoshrimpy.quik.util.Preferences
 
@@ -48,5 +49,8 @@ data class SettingsState(
     val messageLinkHandlingSummary: String = "Ask before opening",
     val messageLinkHandlingId: Int = 2,
     val disableScreenshotsEnabled: Boolean = false,
+    val autoDeduplicateMessages: Boolean = false,
+    val deduplicationProgress: MessageRepository.DeduplicationProgress = MessageRepository.DeduplicationProgress.Idle,
+    val autoDelete: Int = 0,
     val syncProgress: SyncRepository.SyncProgress = SyncRepository.SyncProgress.Idle
 )

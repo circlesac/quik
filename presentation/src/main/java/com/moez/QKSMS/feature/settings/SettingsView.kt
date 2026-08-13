@@ -21,6 +21,7 @@ package dev.octoshrimpy.quik.feature.settings
 import dev.octoshrimpy.quik.common.base.QkViewContract
 import dev.octoshrimpy.quik.common.widget.PreferenceView
 import io.reactivex.Observable
+import io.reactivex.Single
 
 interface SettingsView : QkViewContract<SettingsState> {
     fun preferenceClicks(): Observable<PreferenceView>
@@ -34,6 +35,16 @@ interface SettingsView : QkViewContract<SettingsState> {
     fun signatureChanged(): Observable<String>
     fun mmsSizeSelected(): Observable<Int>
     fun messageLinkHandlingSelected(): Observable<Int>
+    val autoDeduplicateClickIntent: Observable<*>
+    val deduplicateClickIntent: Observable<Unit>
+    val autoDeleteClickIntent: Observable<Unit>
+    fun autoDeleteChanged(): Observable<Int>
+
+    fun showDeduplicationConfirmationDialog(): Single<Boolean>
+    fun handleDeduplicationResult(resIdString: Int)
+
+    fun showAutoDeleteDialog(days: Int)
+    suspend fun showAutoDeleteWarningDialog(messages: Int): Boolean
 
     fun showQksmsPlusSnackbar()
     fun showNightModeDialog()
@@ -45,7 +56,6 @@ interface SettingsView : QkViewContract<SettingsState> {
     fun showMmsSizePicker()
     fun showMessageLinkHandlingDialogPicker()
     fun showSwipeActions()
-    fun showMessageManagement()
     fun showThemePicker()
     fun showAbout()
 }

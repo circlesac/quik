@@ -19,6 +19,7 @@
 package dev.octoshrimpy.quik.feature.settings
 
 import android.animation.ObjectAnimator
+import android.app.AlertDialog
 import android.app.TimePickerDialog
 import android.content.Context
 import android.os.Build
@@ -46,16 +47,22 @@ import dev.octoshrimpy.quik.common.util.extensions.setVisible
 import dev.octoshrimpy.quik.common.widget.PreferenceView
 import dev.octoshrimpy.quik.common.widget.TextInputDialog
 import dev.octoshrimpy.quik.databinding.SettingsControllerBinding
-import dev.octoshrimpy.quik.feature.messageutils.MessageUtilsController
+import dev.octoshrimpy.quik.feature.settings.autodelete.AutoDeleteDialog
 import dev.octoshrimpy.quik.feature.settings.about.AboutController
 import dev.octoshrimpy.quik.feature.settings.swipe.SwipeActionsController
 import dev.octoshrimpy.quik.feature.themepicker.ThemePickerController
 import dev.octoshrimpy.quik.injection.appComponent
+import dev.octoshrimpy.quik.repository.MessageRepository
 import dev.octoshrimpy.quik.repository.SyncRepository
 import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.Observable
+import io.reactivex.Single
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 import javax.inject.Inject
 
 class SettingsController : QkController<SettingsControllerBinding, SettingsView, SettingsState, SettingsPresenter>(), SettingsView {
@@ -81,8 +88,16 @@ class SettingsController : QkController<SettingsControllerBinding, SettingsView,
     private val startTimeSelectedSubject: Subject<Pair<Int, Int>> = PublishSubject.create()
     private val endTimeSelectedSubject: Subject<Pair<Int, Int>> = PublishSubject.create()
     private val signatureSubject: Subject<String> = PublishSubject.create()
+    private val autoDeleteSubject: Subject<Int> = PublishSubject.create()
+    private val autoDeleteDialog: AutoDeleteDialog by lazy {
+        AutoDeleteDialog(activity!!, autoDeleteSubject::onNext)
+    }
+    override val autoDeduplicateClickIntent by lazy { binding.autoDeduplicate.clicks() }
+    override val deduplicateClickIntent by lazy { binding.deduplicateMessages.clicks() }
+    override val autoDeleteClickIntent by lazy { binding.autoDelete.clicks() }
 
     private val progressAnimator by lazy { ObjectAnimator.ofInt(binding.syncingProgress, "progress", 0, 0) }
+    private val deduplicationProgressAnimator by lazy { ObjectAnimator.ofInt(binding.deduplicationProgress, "progress", 0, 0) }
 
     init {
         appComponent.inject(this)
@@ -143,6 +158,37 @@ class SettingsController : QkController<SettingsControllerBinding, SettingsView,
 
     override fun messageLinkHandlingSelected(): Observable<Int> = messageLinkHandlingDialog.adapter.menuItemClicks
 
+    override fun autoDeleteChanged(): Observable<Int> = autoDeleteSubject
+
+    override fun showDeduplicationConfirmationDialog(): Single<Boolean> = Single.create { emitter ->
+        AlertDialog.Builder(activity)
+            .setTitle(R.string.deduplicate_messages_title)
+            .setMessage(R.string.deduplicate_message_confirmation_dialog_message)
+            .setPositiveButton(R.string.button_continue) { _, _ -> emitter.onSuccess(true) }
+            .setNegativeButton(R.string.button_cancel) { _, _ -> emitter.onSuccess(false) }
+            .setCancelable(false)
+            .show()
+    }
+
+    override fun handleDeduplicationResult(resIdString: Int) {
+        binding.deduplicationProgressText.isVisible = true
+        binding.deduplicationProgressText.setText(resIdString)
+    }
+
+    override fun showAutoDeleteDialog(days: Int) = autoDeleteDialog.setExpiry(days).show()
+
+    override suspend fun showAutoDeleteWarningDialog(messages: Int): Boolean = withContext(Dispatchers.Main) {
+        suspendCancellableCoroutine { cont ->
+            androidx.appcompat.app.AlertDialog.Builder(activity!!)
+                .setTitle(R.string.settings_auto_delete_warning)
+                .setMessage(context.resources.getString(R.string.settings_auto_delete_warning_message, messages))
+                .setOnCancelListener { cont.resume(false) }
+                .setNegativeButton(R.string.button_cancel) { _, _ -> cont.resume(false) }
+                .setPositiveButton(R.string.button_yes) { _, _ -> cont.resume(true) }
+                .show()
+        }
+    }
+
     override fun render(state: SettingsState) {
         binding.theme.findViewById<View>(R.id.themePreview)?.setBackgroundTint(state.theme)
         binding.night.summary = state.nightModeSummary
@@ -186,6 +232,28 @@ class SettingsController : QkController<SettingsControllerBinding, SettingsView,
         messageLinkHandlingDialog.adapter.selectedItem = state.messageLinkHandlingId
 
         binding.disableScreenshots.checkbox?.isChecked = state.disableScreenshotsEnabled
+
+        binding.autoDeduplicate.checkbox?.isChecked = state.autoDeduplicateMessages
+
+        when (state.deduplicationProgress) {
+            is MessageRepository.DeduplicationProgress.Idle -> {
+                binding.deduplicationProgress.isVisible = false
+            }
+
+            is MessageRepository.DeduplicationProgress.Running -> {
+                binding.deduplicationProgress.isVisible = true
+                binding.deduplicationProgress.max = state.deduplicationProgress.max
+                deduplicationProgressAnimator
+                    .apply { setIntValues(binding.deduplicationProgress.progress, state.deduplicationProgress.progress) }
+                    .start()
+                binding.deduplicationProgress.isIndeterminate = state.deduplicationProgress.indeterminate
+            }
+        }
+
+        binding.autoDelete.summary = when (state.autoDelete) {
+            0 -> context.getString(R.string.settings_auto_delete_never)
+            else -> context.resources.getQuantityString(R.plurals.settings_auto_delete_summary, state.autoDelete, state.autoDelete)
+        }
 
         when (state.syncProgress) {
             is SyncRepository.SyncProgress.Idle -> binding.syncingProgress.isVisible = false
@@ -243,12 +311,6 @@ class SettingsController : QkController<SettingsControllerBinding, SettingsView,
 
     override fun showSwipeActions() {
         router.pushController(RouterTransaction.with(SwipeActionsController())
-                .pushChangeHandler(QkChangeHandler())
-                .popChangeHandler(QkChangeHandler()))
-    }
-
-    override fun showMessageManagement() {
-        router.pushController(RouterTransaction.with(MessageUtilsController())
                 .pushChangeHandler(QkChangeHandler())
                 .popChangeHandler(QkChangeHandler()))
     }

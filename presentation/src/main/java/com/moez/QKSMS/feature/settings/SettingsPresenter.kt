@@ -28,12 +28,19 @@ import dev.octoshrimpy.quik.common.base.QkPresenter
 import dev.octoshrimpy.quik.common.util.Colors
 import dev.octoshrimpy.quik.common.util.DateFormatter
 import dev.octoshrimpy.quik.common.util.extensions.makeToast
+import dev.octoshrimpy.quik.interactor.DeleteOldMessages
+import dev.octoshrimpy.quik.interactor.DeduplicateMessages
 import dev.octoshrimpy.quik.interactor.SyncMessages
 import dev.octoshrimpy.quik.manager.BillingManager
+import dev.octoshrimpy.quik.repository.MessageRepository
 import dev.octoshrimpy.quik.repository.SyncRepository
+import dev.octoshrimpy.quik.service.AutoDeleteService
 import dev.octoshrimpy.quik.util.NightModeManager
 import dev.octoshrimpy.quik.util.Preferences
+import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.plusAssign
+import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -49,7 +56,10 @@ class SettingsPresenter @Inject constructor(
     private val externalNavigator: ExternalNavigator,
     private val nightModeManager: NightModeManager,
     private val prefs: Preferences,
-    private val syncMessages: SyncMessages
+    private val syncMessages: SyncMessages,
+    private val deduplicateMessages: DeduplicateMessages,
+    private val deleteOldMessages: DeleteOldMessages,
+    private val messageRepo: MessageRepository
 ) : QkPresenter<SettingsView, SettingsState>(SettingsState(
         nightModeId = prefs.nightMode.get()
 )) {
@@ -140,7 +150,18 @@ class SettingsPresenter @Inject constructor(
                 }
             }
         disposables += prefs.disableScreenshots.asObservable()
-            .subscribe { enabled -> newState { copy(disableScreenshotsEnabled = enabled) } }
+                .subscribe { enabled -> newState { copy(disableScreenshotsEnabled = enabled) } }
+
+        disposables += messageRepo.deduplicationProgress
+                .sample(16, TimeUnit.MILLISECONDS)
+                .distinctUntilChanged()
+                .subscribe { deduplicateProgress -> newState { copy(deduplicationProgress = deduplicateProgress) } }
+
+        disposables += prefs.autoDeduplicate.asObservable()
+                .subscribe { enabled -> newState { copy(autoDeduplicateMessages = enabled) } }
+
+        disposables += prefs.autoDelete.asObservable()
+                .subscribe { autoDelete -> newState { copy(autoDelete = autoDelete) } }
 
         disposables += syncRepo.syncProgress
                 .sample(16, TimeUnit.MILLISECONDS)
@@ -209,8 +230,6 @@ class SettingsPresenter @Inject constructor(
 
                         R.id.disableScreenshots -> prefs.disableScreenshots.set(!prefs.disableScreenshots.get())
 
-                        R.id.messageManagement -> view.showMessageManagement()
-
                         R.id.sync -> syncMessages.execute(Unit)
 
                         R.id.about -> view.showAbout()
@@ -278,6 +297,67 @@ class SettingsPresenter @Inject constructor(
         view.messageLinkHandlingSelected()
             .autoDisposable(view.scope())
             .subscribe(prefs.messageLinkHandling::set)
+
+        view.deduplicateClickIntent
+            .flatMapSingle { view.showDeduplicationConfirmationDialog() }
+            .filter { it }
+            .observeOn(Schedulers.io())
+            .autoDisposable(view.scope())
+            .subscribe {
+                deduplicateMessages.buildObservable(Unit)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe { result ->
+                        when (result) {
+                            is MessageRepository.DeduplicationResult.Success -> {
+                                view.handleDeduplicationResult(R.string.deduplicating_messages_finished)
+                            }
+
+                            is MessageRepository.DeduplicationResult.NoDuplicates -> {
+                                view.handleDeduplicationResult(R.string.deduplicating_messages_no_messages)
+                            }
+
+                            is MessageRepository.DeduplicationResult.Failure -> {
+                                view.handleDeduplicationResult(R.string.deduplicating_messages_failed)
+                                Timber.e("Error while deduplicating messages: ${result.error}")
+                            }
+                        }
+                    }
+            }
+
+        view.autoDeduplicateClickIntent
+            .autoDisposable(view.scope())
+            .subscribe { prefs.autoDeduplicate.set(!prefs.autoDeduplicate.get()) }
+
+        view.autoDeleteClickIntent
+            .autoDisposable(view.scope())
+            .subscribe { view.showAutoDeleteDialog(prefs.autoDelete.get()) }
+
+        view.autoDeleteChanged()
+            .observeOn(Schedulers.io())
+            .filter { maxAge ->
+                if (maxAge == 0) {
+                    return@filter true
+                }
+
+                val counts = messageRepo.getOldMessageCounts(maxAge)
+                if (counts.values.sum() == 0) {
+                    return@filter true
+                }
+
+                runBlocking { view.showAutoDeleteWarningDialog(counts.values.sum()) }
+            }
+            .doOnNext { maxAge ->
+                when (maxAge == 0) {
+                    true -> AutoDeleteService.cancelJob(context)
+                    false -> {
+                        AutoDeleteService.scheduleJob(context)
+                        deleteOldMessages.execute(Unit)
+                    }
+                }
+            }
+            .doOnNext(prefs.autoDelete::set)
+            .autoDisposable(view.scope())
+            .subscribe()
     }
 
 }

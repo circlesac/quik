@@ -222,12 +222,61 @@
             app:title="@string/settings_disable_screenshots_title"
             app:widget="@layout/settings_switch_widget" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="?android:attr/divider" />
+
+        <dev.octoshrimpy.quik.common.widget.QkTextView
+            style="@style/PreferenceCategory"
+            android:text="@string/message_management_title" />
+
         <dev.octoshrimpy.quik.common.widget.PreferenceView
-            android:id="@+id/messageManagement"
+            android:id="@+id/deduplicateMessages"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:icon="@drawable/dashboard_2_gear"
-            app:title="@string/message_management_title" />
+            app:icon="@drawable/delete_sweep"
+            app:summary="@string/deduplicate_messages_summary"
+            app:title="@string/deduplicate_messages_title" />
+
+        <dev.octoshrimpy.quik.common.widget.QkTextView
+            android:id="@+id/deduplicationProgressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:textColor="?android:attr/textColorTertiary"
+            app:textSize="secondary"
+            android:paddingStart="72dp" />
+
+        <ProgressBar
+            android:id="@+id/deduplicationProgress"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="72dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:indeterminate="true"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/autoDeduplicate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/auto_delete"
+            app:summary="@string/auto_deduplicate_messages_summary"
+            app:title="@string/auto_deduplicate_messages_title"
+            app:widget="@layout/settings_switch_widget" />
+
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/autoDelete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/ic_baseline_history_toggle_off_24"
+            app:title="@string/settings_auto_delete"
+            tools:summary="Never" />
 
         <View
             android:layout_width="match_parent"
