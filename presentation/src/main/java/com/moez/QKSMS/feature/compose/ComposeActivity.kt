@@ -589,6 +589,10 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
             .show()
     }
 
+    override fun finishActivity() {
+        finish()
+    }
+
     private fun showMessageActions(target: MessageActionTarget) {
         val visibleBounds = Rect()
         if (!target.anchor.getGlobalVisibleRect(visibleBounds)) return

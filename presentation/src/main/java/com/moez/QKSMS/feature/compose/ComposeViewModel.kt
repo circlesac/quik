@@ -449,7 +449,9 @@ class ComposeViewModel @Inject constructor(
         view.confirmDeleteConversationIntent
             .withLatestFrom(conversation) { _, conversation -> conversation }
             .autoDisposable(view.scope())
-            .subscribe { conversation -> deleteConversations.execute(listOf(conversation.id)) }
+            .subscribe { conversation ->
+                deleteConversations.execute(listOf(conversation.id), view::finishActivity)
+            }
 
         // Copy the message contents
         view.optionsItemIntent

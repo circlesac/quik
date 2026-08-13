@@ -100,6 +100,7 @@ interface ComposeView : QkView<ComposeState> {
     fun showConversationActions(archived: Boolean, blocked: Boolean)
     fun showBlockingDialog(conversations: List<Long>, block: Boolean)
     fun showDeleteConversationDialog()
+    fun finishActivity()
     fun expandMessages(messageIds: List<Long>, expand: Boolean)
     fun showDetails(details: String)
     fun showMessageLinkAskDialog(uri: Uri)
