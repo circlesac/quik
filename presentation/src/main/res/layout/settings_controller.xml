@@ -222,6 +222,13 @@
             app:title="@string/settings_disable_screenshots_title"
             app:widget="@layout/settings_switch_widget" />
 
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/messageManagement"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/dashboard_2_gear"
+            app:title="@string/message_management_title" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"

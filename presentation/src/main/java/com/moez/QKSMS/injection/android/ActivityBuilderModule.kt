@@ -31,7 +31,6 @@ import dev.octoshrimpy.quik.feature.gallery.GalleryActivity
 import dev.octoshrimpy.quik.feature.gallery.GalleryActivityModule
 import dev.octoshrimpy.quik.feature.main.MainActivity
 import dev.octoshrimpy.quik.feature.main.MainActivityModule
-import dev.octoshrimpy.quik.feature.messageutils.MessageUtilsActivity
 import dev.octoshrimpy.quik.feature.notificationprefs.NotificationPrefsActivity
 import dev.octoshrimpy.quik.feature.notificationprefs.NotificationPrefsActivityModule
 import dev.octoshrimpy.quik.feature.plus.PlusActivity
@@ -86,10 +85,6 @@ abstract class ActivityBuilderModule {
     @ActivityScope
     @ContributesAndroidInjector(modules = [ScheduledActivityModule::class])
     abstract fun bindScheduledActivity(): ScheduledActivity
-
-    @ActivityScope
-    @ContributesAndroidInjector(modules = [])
-    abstract fun bindMessageUtilsActivity(): MessageUtilsActivity
 
     @ActivityScope
     @ContributesAndroidInjector(modules = [])

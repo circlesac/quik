@@ -31,7 +31,6 @@ import dev.octoshrimpy.quik.feature.compose.ComposeActivity
 import dev.octoshrimpy.quik.feature.conversationinfo.ConversationInfoActivity
 import dev.octoshrimpy.quik.feature.gallery.GalleryActivity
 import dev.octoshrimpy.quik.feature.main.MainActivity
-import dev.octoshrimpy.quik.feature.messageutils.MessageUtilsActivity
 import dev.octoshrimpy.quik.feature.plus.PlusActivity
 import dev.octoshrimpy.quik.feature.scheduled.ScheduledActivity
 import dev.octoshrimpy.quik.feature.settings.SettingsActivity
@@ -127,10 +126,6 @@ class Navigator @Inject constructor(
         val intent = Intent(context, ScheduledActivity::class.java)
         conversationId?.let { intent.putExtra("conversationId", it) }
         startActivity(intent)
-    }
-
-    fun showMessageUtils() {
-        startActivity(Intent(context, MessageUtilsActivity::class.java))
     }
 
     fun showSettings() {

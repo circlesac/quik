@@ -209,6 +209,8 @@ class SettingsPresenter @Inject constructor(
 
                         R.id.disableScreenshots -> prefs.disableScreenshots.set(!prefs.disableScreenshots.get())
 
+                        R.id.messageManagement -> view.showMessageManagement()
+
                         R.id.sync -> syncMessages.execute(Unit)
 
                         R.id.about -> view.showAbout()
