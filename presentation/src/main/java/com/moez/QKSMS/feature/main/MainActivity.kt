@@ -490,7 +490,12 @@ class MainActivity : QkThemedActivity(), MainView {
                 )
             )
             .setPositiveButton(R.string.button_delete) { _, _ -> confirmDeleteIntent.onNext(conversations) }
-            .setNegativeButton(R.string.button_cancel, null)
+            .setNegativeButton(R.string.button_cancel) { _, _ ->
+                binding.recyclerView.post {
+                    itemTouchHelper.attachToRecyclerView(null)
+                    itemTouchHelper.attachToRecyclerView(binding.recyclerView)
+                }
+            }
             .show()
     }
 
